@@ -1,0 +1,39 @@
+[0mPOST /api/auth/user/login [32m200[0m 804.396 ms - 423[0m
+[0mPOST /api/auth/merchant/login [32m200[0m 565.509 ms - 417[0m
+[0mGET /api/products [32m200[0m 123.583 ms - 2578[0m
+[0mGET /api/products/696e2e2518ce98f1ed124bb2 [32m200[0m 141.371 ms - 926[0m
+[0mPOST /api/products [33m403[0m 42.173 ms - 60[0m
+[0mPOST /api/cart/add [32m200[0m 338.144 ms - 1056[0m
+[0mGET /api/cart [32m200[0m 206.231 ms - 1022[0m
+[0mGET /api/recipes [32m200[0m 96.871 ms - 1241[0m
+[0mPOST /api/recipes/696e2e2518ce98f1ed124bb6/calculate-ingredients [32m200[0m 86.996 ms - 729[0m
+[0mPOST /api/users/addresses [32m201[0m 83.606 ms - 383[0m
+[0mPOST /api/orders [32m201[0m 307.823 ms - 756[0m
+[0mGET /api/orders/my-orders [32m200[0m 159.716 ms - 920[0m
+[0mGET /api/orders/merchant/orders [32m200[0m 174.467 ms - 1169[0m
+PASS tests/integration.test.js
+  Green Basket Backend Complete Feature Test
+    1. Authentication
+      ✓ should login as a User (841 ms)
+      ✓ should login as a Merchant (569 ms)
+    2. Product Management
+      ✓ should get all products (130 ms)
+      ✓ should get a single product by ID (145 ms)
+      ✓ should protect merchant routes (47 ms)
+    3. Shopping Cart
+      ✓ should add item to cart (472 ms)
+      ✓ should get user cart (212 ms)
+    4. Recipes
+      ✓ should get all recipes (103 ms)
+      ✓ should get ingredient calculation for a recipe (93 ms)
+    5. Order Processing
+      ✓ should create an address (91 ms)
+      ✓ should create an order (312 ms)
+      ✓ should get user orders (164 ms)
+      ✓ should get merchant orders (182 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       13 passed, 13 total
+Snapshots:   0 total
+Time:        4.334 s, estimated 5 s
+Ran all test suites matching /tests\/integration.test.js/i.

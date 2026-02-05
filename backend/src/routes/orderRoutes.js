@@ -1,0 +1,18 @@
+const express = require('express');
+const router = express.Router();
+const orderController = require('../controllers/orderController');
+const { authenticate, isMerchant } = require('../middlewares/authMiddleware');
+const { validateOrder } = require('../utils/validators');
+const { validate } = require('../middlewares/validationMiddleware');
+
+// Customer routes
+router.post('/', authenticate, validateOrder, validate, orderController.createOrder);
+router.get('/my-orders', authenticate, orderController.getMyOrders);
+router.get('/:id', authenticate, orderController.getOrderById);
+router.patch('/:id/cancel', authenticate, orderController.cancelOrder);
+
+// Merchant routes
+router.get('/merchant/orders', authenticate, isMerchant, orderController.getMerchantOrders);
+router.patch('/merchant/:id/status', authenticate, isMerchant, orderController.updateOrderStatus);
+
+module.exports = router;
