@@ -73,12 +73,51 @@ const userSchema = new mongoose.Schema({
     // Loyalty & Rewards
     loyaltyPoints: {
         type: Number,
-        default: 0
+        default: 0,
+        min: 0
     },
     loyaltyTier: {
         type: String,
         enum: ['bronze', 'silver', 'gold', 'platinum'],
         default: 'bronze'
+    },
+    pointsHistory: [{
+        type: {
+            type: String,
+            enum: ['earned', 'redeemed', 'expired', 'bonus'],
+            required: true
+        },
+        points: {
+            type: Number,
+            required: true
+        },
+        source: {
+            type: String,
+            enum: ['order', 'review', 'referral', 'birthday', 'redemption', 'expiry'],
+            required: true
+        },
+        description: String,
+        orderId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Order'
+        },
+        expiryDate: Date,
+        createdAt: {
+            type: Date,
+            default: Date.now
+        }
+    }],
+    nextTierPoints: Number,
+    tierBenefits: {
+        extraPointsPercentage: {
+            type: Number,
+            default: 0
+        },
+        freeDeliveryThreshold: Number,
+        prioritySupport: {
+            type: Boolean,
+            default: false
+        }
     },
 
     // Wallet
@@ -87,14 +126,34 @@ const userSchema = new mongoose.Schema({
         default: 0
     },
 
-    // Settings
-    notificationSettings: {
-        email: { type: Boolean, default: true },
-        sms: { type: Boolean, default: true },
-        push: { type: Boolean, default: true },
-        orderUpdates: { type: Boolean, default: true },
-        offers: { type: Boolean, default: true }
+    // Notification Preferences
+    notificationPreferences: {
+        email: {
+            orderUpdates: { type: Boolean, default: true },
+            offers: { type: Boolean, default: true },
+            newsletter: { type: Boolean, default: false },
+            productUpdates: { type: Boolean, default: true }
+        },
+        push: {
+            orderUpdates: { type: Boolean, default: true },
+            offers: { type: Boolean, default: true },
+            priceDrops: { type: Boolean, default: true },
+            backInStock: { type: Boolean, default: true }
+        },
+        sms: {
+            orderUpdates: { type: Boolean, default: true },
+            offers: { type: Boolean, default: false },
+            otp: { type: Boolean, default: true }
+        }
     },
+
+    // FCM Tokens for Push Notifications
+    fcmTokens: [String],
+    deviceTokens: [{
+        token: String,
+        deviceType: { type: String, enum: ['ios', 'android', 'web'] },
+        lastUsed: Date
+    }],
 
     // Status
     isActive: {

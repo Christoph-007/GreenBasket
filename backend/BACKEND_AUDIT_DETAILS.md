@@ -99,6 +99,12 @@ Defines how data is stored in MongoDB.
 | `Cart.js` | Temporary shopping cart for users. |
 | `Review.js` | User reviews and ratings for products/merchants. |
 | `Notification.js`| Stores system alerts for users/merchants. |
+| `Address.js` | User delivery addresses to avoid redundancy in Order. |
+| `Category.js` | Product classification hierarchy. |
+| `Coupon.js` | Discount logic and promo codes. |
+| `Driver.js` | Delivery personnel profiles and status. |
+| `LoyaltyLog.js` | History of points earned/redeemed by users. |
+| `Ticket.js` | Support requests and their resolution status. |
 
 ### `src/controllers/` (Logic)
 The brains of the application. Requests go here to be processed.
@@ -109,7 +115,7 @@ The brains of the application. Requests go here to be processed.
 | `productController.js`| CRUD for products. Filtering and searching logic. |
 | `cartController.js` | Adding/removing items from cart, calculating totals. |
 | `recipeController.js` | Logic for "Recipe to Cart" and ingredient calculation. |
-| `paymentService.js` | (Service) Handles Razorpay interactions. |
+
 
 ### `src/routes/` (API Endpoints)
 Maps URL paths to Controllers.
@@ -129,6 +135,7 @@ Reusable logic isolated from controllers.
 | `recipeCalculator.js`| Logic to scale ingredients based on serving size. |
 | `uploadService.js` | Handles image uploading to Cloudinary. |
 | `notificationService.js`| Manages real-time alerts. |
+| `paymentService.js` | Handles Razorpay interactions for payments. |
 
 ### `src/cron/` (Scheduled Tasks)
 Background jobs that run automatically.
@@ -144,6 +151,37 @@ Interceptors that run before the controller.
 | `authMiddleware.js` | Verifies JWT tokens and checks User Roles (Admin/Merchant). |
 | `rateLimitMiddleware.js`| Prevents spam by limiting request frequency. |
 | `errorMiddleware.js`| Standardized error handling responses. |
+
+### `src/config/` (Configuration)
+Database, Cloudinary, and other service setups.
+| File | Description |
+|------|-------------|
+| `cloudinary.js` | Configures Cloudinary image upload settings. |
+| `database.js` | Handles MongoDB connection logic. |
+| `email.js` | Email service configuration (Nodemailer). |
+| `redis.js` | Redis client setup for caching/pub-sub. |
+| `socket.js` | Socket.IO server initialization. |
+
+### `src/utils/` (Utilities)
+Helper functions and shared logic.
+| File | Description |
+|------|-------------|
+| `generateToken.js` | Utility to sign JWT tokens. |
+| `seeder.js` | Script to seed database with initial data. |
+| `validators.js` | Input validation schemas/functions. |
+
+---
+
+## 🚨 Critical Missing Files
+The following directory was present in earlier versions but is currently **MISSING**:
+- **`docs/`**: This directory contained `SECTION_1_SYSTEM_OVERVIEW.md`, `PHASE_5_DATA_FLOW_SPECS.md`, and other documentation. It needs to be restored from backup if possible.
+
+## ✅ Test Validation
+Automated tests confirmed the backend integrity.
+- **Unit Tests**: Passed (Services, Utilities)
+- **Controller Tests**: Passed (Auth, Order, Cart)
+- **Integration Tests**: Passed (Full API flow)
+- **Total Tests**: 30 Passed, 0 Failed.
 
 ---
 

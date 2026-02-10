@@ -158,3 +158,173 @@ exports.deleteAddress = async (req, res) => {
         });
     }
 };
+
+// Notification Preferences
+exports.updateNotificationPreferences = async (req, res) => {
+    try {
+        const { email, push, sms } = req.body;
+
+        const user = await User.findById(req.user.id);
+
+        if (!user.notificationPreferences) {
+            user.notificationPreferences = {};
+        }
+
+        if (email) {
+            user.notificationPreferences.email = {
+                ...user.notificationPreferences.email,
+                ...email
+            };
+        }
+
+        if (push) {
+            user.notificationPreferences.push = {
+                ...user.notificationPreferences.push,
+                ...push
+            };
+        }
+
+        if (sms) {
+            user.notificationPreferences.sms = {
+                ...user.notificationPreferences.sms,
+                ...sms
+            };
+        }
+
+        await user.save();
+
+        res.json({
+            success: true,
+            message: 'Notification preferences updated successfully',
+            data: {
+                notificationPreferences: user.notificationPreferences
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error updating notification preferences',
+            error: error.message
+        });
+    }
+};
+
+exports.getNotificationPreferences = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+
+        res.json({
+            success: true,
+            data: user.notificationPreferences || {
+                email: {
+                    orderUpdates: true,
+                    offers: true,
+                    newsletter: false,
+                    productUpdates: true
+                },
+                push: {
+                    orderUpdates: true,
+                    offers: true,
+                    priceDrops: true,
+                    backInStock: true
+                },
+                sms: {
+                    orderUpdates: true,
+                    offers: false,
+                    otp: true
+                }
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching notification preferences',
+            error: error.message
+        });
+    }
+};
+
+// FCM Token Management
+exports.registerFCMToken = async (req, res) => {
+    try {
+        const { token, deviceType } = req.body;
+
+        if (!token) {
+            return res.status(400).json({
+                success: false,
+                message: 'Token is required'
+            });
+        }
+
+        const user = await User.findById(req.user.id);
+
+        if (!user.fcmTokens) {
+            user.fcmTokens = [];
+        }
+        if (!user.deviceTokens) {
+            user.deviceTokens = [];
+        }
+
+        // Remove token if already exists
+        user.fcmTokens = user.fcmTokens.filter(t => t !== token);
+
+        // Add new token
+        user.fcmTokens.push(token);
+
+        // Update device tokens
+        const existingDevice = user.deviceTokens.find(d => d.token === token);
+        if (existingDevice) {
+            existingDevice.lastUsed = new Date();
+        } else {
+            user.deviceTokens.push({
+                token,
+                deviceType: deviceType || 'web',
+                lastUsed: new Date()
+            });
+        }
+
+        await user.save();
+
+        res.json({
+            success: true,
+            message: 'FCM token registered successfully'
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error registering FCM token',
+            error: error.message
+        });
+    }
+};
+
+exports.removeFCMToken = async (req, res) => {
+    try {
+        const { token } = req.body;
+
+        if (!token) {
+            return res.status(400).json({
+                success: false,
+                message: 'Token is required'
+            });
+        }
+
+        const user = await User.findById(req.user.id);
+
+        user.fcmTokens = user.fcmTokens.filter(t => t !== token);
+        user.deviceTokens = user.deviceTokens.filter(d => d.token !== token);
+
+        await user.save();
+
+        res.json({
+            success: true,
+            message: 'FCM token removed successfully'
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error removing FCM token',
+            error: error.message
+        });
+    }
+};

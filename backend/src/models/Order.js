@@ -92,6 +92,63 @@ const orderSchema = new mongoose.Schema({
     },
 
     // Payment
+    // Payment Gateway Fields
+    paymentGateway: {
+        provider: {
+            type: String,
+            enum: ['razorpay', 'stripe', 'phonepe', 'cod'],
+            default: 'razorpay'
+        },
+        orderId: String, // Razorpay order_id
+        paymentId: String, // Razorpay payment_id
+        signature: String, // Razorpay signature
+        transactionId: String // Bank/UPI transaction ID
+    },
+
+    paymentDetails: {
+        method: {
+            type: String,
+            enum: ['card', 'upi', 'netbanking', 'wallet', 'emi', 'cod']
+        },
+        cardNetwork: String,
+        cardLast4: String,
+        upiVpa: String,
+        bank: String,
+        wallet: String,
+        email: String,
+        contact: String
+    },
+
+    // Refund Fields
+    refund: {
+        status: {
+            type: String,
+            enum: ['none', 'initiated', 'processing', 'completed', 'failed'],
+            default: 'none'
+        },
+        refundId: String,
+        amount: Number,
+        reason: String,
+        initiatedAt: Date,
+        completedAt: Date,
+        failureReason: String
+    },
+
+    // Payment Events Log
+    paymentEvents: [{
+        event: {
+            type: String,
+            enum: ['order_created', 'payment_authorized', 'payment_captured',
+                'payment_failed', 'refund_initiated', 'refund_completed']
+        },
+        data: mongoose.Schema.Types.Mixed,
+        timestamp: {
+            type: Date,
+            default: Date.now
+        }
+    }],
+
+    // Basic Payment Info (kept for compatibility)
     paymentMethod: {
         type: String,
         enum: ['cod', 'online', 'wallet'],
@@ -99,13 +156,8 @@ const orderSchema = new mongoose.Schema({
     },
     paymentStatus: {
         type: String,
-        enum: ['pending', 'paid', 'failed', 'refunded'],
+        enum: ['pending', 'completed', 'failed', 'refunded', 'paid'],
         default: 'pending'
-    },
-    paymentDetails: {
-        transactionId: String,
-        gateway: String,
-        paidAt: Date
     },
 
     // Order Status
