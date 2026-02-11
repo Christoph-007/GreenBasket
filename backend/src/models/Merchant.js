@@ -96,6 +96,67 @@ const merchantSchema = new mongoose.Schema({
     verifiedAt: Date,
     rejectionReason: String,
 
+    // Document Verification System
+    documents: [{
+        type: {
+            type: String,
+            enum: ['fssai', 'gst', 'pan', 'aadhaar', 'bank_details', 'organic_certificate', 'farm_ownership', 'other'],
+            required: true
+        },
+        documentNumber: {
+            type: String
+        },
+        documentUrl: {
+            type: String,
+            required: true
+        },
+        expiryDate: {
+            type: Date
+        },
+        status: {
+            type: String,
+            enum: ['pending', 'verified', 'rejected', 'expired'],
+            default: 'pending'
+        },
+        verifiedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Admin'
+        },
+        verifiedAt: {
+            type: Date
+        },
+        rejectionReason: {
+            type: String
+        },
+        uploadedAt: {
+            type: Date,
+            default: Date.now
+        },
+        notes: {
+            type: String,
+            maxlength: 500
+        }
+    }],
+
+    // Document History
+    documentHistory: [{
+        originalId: mongoose.Schema.Types.ObjectId,
+        type: String,
+        documentNumber: String,
+        documentUrl: String,
+        expiryDate: Date,
+        status: String,
+        verifiedBy: mongoose.Schema.Types.ObjectId,
+        verifiedAt: Date,
+        rejectionReason: String,
+        uploadedAt: Date,
+        notes: String,
+        archivedAt: {
+            type: Date,
+            default: Date.now
+        }
+    }],
+
     // Badges & Ratings
     badges: [{
         type: String,
@@ -159,6 +220,42 @@ const merchantSchema = new mongoose.Schema({
         default: 0
     },
     freeDeliveryAbove: Number,
+
+    // Delivery Zones (Advanced)
+    deliveryZones: [{
+        name: {
+            type: String,
+            trim: true
+        },
+        radiusKm: {
+            type: Number,
+            required: true,
+            min: 0.1,
+            max: 100
+        },
+        deliveryCharge: {
+            type: Number,
+            required: true,
+            min: 0
+        },
+        minimumOrder: {
+            type: Number,
+            default: 0,
+            min: 0
+        },
+        freeDeliveryAbove: {
+            type: Number,
+            min: 0
+        },
+        estimatedDeliveryTime: {
+            type: String,
+            default: '30-45 mins'
+        },
+        isActive: {
+            type: Boolean,
+            default: true
+        }
+    }],
 
     // Bank Details
     bankDetails: {

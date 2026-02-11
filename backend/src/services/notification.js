@@ -136,16 +136,18 @@ class NotificationService {
     }
 
     getTypeCategory(type) {
-        const orderTypes = ['order_placed', 'order_confirmed', 'order_preparing',
+        const orderTypes = ['order', 'order_placed', 'order_confirmed', 'order_preparing',
             'order_out_for_delivery', 'order_delivered', 'order_cancelled'];
         const offerTypes = ['offer_available', 'flash_sale'];
-        const productTypes = ['price_drop', 'back_in_stock'];
+        const productTypes = ['price_drop', 'back_in_stock', 'prebooking_available'];
+        const accountTypes = ['wallet_credit', 'membership_expiring', 'membership_renewed'];
 
         if (orderTypes.includes(type)) return 'orderUpdates';
         if (offerTypes.includes(type)) return 'offers';
         if (productTypes.includes(type)) return 'productUpdates';
+        if (accountTypes.includes(type)) return 'accountUpdates';
 
-        return 'orderUpdates';
+        return 'orderUpdates'; // Default
     }
 
     getEmailTemplate(type) {
@@ -163,6 +165,52 @@ class NotificationService {
         };
 
         return templates[type] || 'generic';
+    }
+
+    // Adapter for compatibility
+    async createNotification({ recipient, recipientModel, type, title, message, data }) {
+        return this.send(recipient, recipientModel, { type, title, message, data });
+    }
+
+    async markAsRead(notificationId, userId) {
+        return Notification.findOneAndUpdate(
+            { _id: notificationId, user: userId },
+            { 'channels.inApp.read': true, 'channels.inApp.readAt': new Date() },
+            { new: true }
+        );
+    }
+
+    async markAllAsRead(userId) {
+        await Notification.updateMany(
+            { user: userId, 'channels.inApp.read': false },
+            { 'channels.inApp.read': true, 'channels.inApp.readAt': new Date() }
+        );
+    }
+
+    async getUserNotifications(userId, { page = 1, limit = 20 }) {
+        const skip = (page - 1) * limit;
+
+        const notifications = await Notification.find({ user: userId })
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(parseInt(limit));
+
+        const total = await Notification.countDocuments({ user: userId });
+        const unreadCount = await Notification.countDocuments({
+            user: userId,
+            'channels.inApp.read': false
+        });
+
+        return {
+            notifications,
+            pagination: {
+                page: parseInt(page),
+                limit: parseInt(limit),
+                total,
+                pages: Math.ceil(total / limit)
+            },
+            unreadCount
+        };
     }
 }
 

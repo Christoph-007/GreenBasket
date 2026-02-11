@@ -27,6 +27,19 @@ const notificationRoutes = require('./src/routes/notificationRoutes');
 const wishlistRoutes = require('./src/routes/wishlistRoutes');
 const walletRoutes = require('./src/routes/walletRoutes');
 const loyaltyRoutes = require('./src/routes/loyaltyRoutes');
+const referralRoutes = require('./src/routes/referralRoutes');
+const offerRoutes = require('./src/routes/offerRoutes');
+const merchantAnalyticsRoutes = require('./src/routes/merchantAnalyticsRoutes');
+const deliveryZoneRoutes = require('./src/routes/deliveryZoneRoutes');
+const membershipRoutes = require('./src/routes/membershipRoutes');
+const preBookingRoutes = require('./src/routes/preBookingRoutes');
+const documentRoutes = require('./src/routes/documentRoutes');
+const disputeRoutes = require('./src/routes/disputeRoutes');
+const financialRoutes = require('./src/routes/financialRoutes');
+const bulkOperationsRoutes = require('./src/routes/bulkOperationsRoutes');
+const searchRoutes = require('./src/routes/searchRoutes');
+const returnRoutes = require('./src/routes/returnRoutes');
+const giftCardRoutes = require('./src/routes/giftCardRoutes');
 
 // Import middlewares
 const { notFound, errorHandler } = require('./src/middlewares/errorMiddleware');
@@ -45,7 +58,15 @@ app.use(cors({
     origin: process.env.FRONTEND_URL || '*',
     credentials: true
 }));
-app.use(express.json());
+
+// Webhook route (must be before express.json to handle raw body)
+app.use(
+    '/api/payment/webhook',
+    express.raw({ type: 'application/json' }),
+    require('./src/routes/paymentWebhookRoute')
+);
+
+app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 
@@ -77,7 +98,7 @@ app.get('/api', (req, res) => {
         success: true,
         message: 'Green Basket API',
         version: '1.0.0',
-        totalAPIs: 103,
+        totalAPIs: 204,
         endpoints: {
             authentication: {
                 userSignup: 'POST /api/auth/user/signup',
@@ -122,7 +143,8 @@ app.get('/api', (req, res) => {
                 getById: 'GET /api/orders/:id',
                 cancel: 'PATCH /api/orders/:id/cancel',
                 getMerchantOrders: 'GET /api/orders/merchant/orders (Merchant)',
-                updateStatus: 'PATCH /api/orders/merchant/:id/status (Merchant)'
+                updateStatus: 'PATCH /api/orders/merchant/:id/status (Merchant)',
+                updateLocation: 'PATCH /api/orders/:id/location (User/Merchant)'
             },
             recipes: {
                 getAll: 'GET /api/recipes',
@@ -215,18 +237,143 @@ app.get('/api', (req, res) => {
                 getHistory: 'GET /api/loyalty/history',
                 getBenefits: 'GET /api/loyalty/benefits',
                 awardPoints: 'POST /api/loyalty/award (Admin)'
+            },
+            referral: {
+                generateCode: 'POST /api/referral/generate (User)',
+                getStats: 'GET /api/referral/stats (User)',
+                applyCode: 'POST /api/referral/apply (User)',
+                validateCode: 'GET /api/referral/validate/:code',
+                processReward: 'POST /api/referral/process-reward (Admin)'
+            },
+            offers: {
+                createOffer: 'POST /api/offers (Merchant/Admin)',
+                getMerchantOffers: 'GET /api/offers/merchant (Merchant)',
+                getAvailableOffers: 'GET /api/offers/available (User)',
+                applyCoupon: 'POST /api/offers/cart/apply-coupon (User)',
+                removeCoupon: 'DELETE /api/offers/cart/remove-coupon (User)',
+                updateOffer: 'PUT /api/offers/:id (Merchant/Admin)',
+                deleteOffer: 'DELETE /api/offers/:id (Merchant/Admin)',
+                getOfferAnalytics: 'GET /api/offers/:id/analytics (Merchant/Admin)',
+                getFlashSales: 'GET /api/offers/flash-sales',
+                getAllOffers: 'GET /api/offers/admin/all (Admin)'
+            },
+            merchantAnalytics: {
+                salesAnalytics: 'GET /api/merchants/analytics/sales (Merchant)',
+                productAnalytics: 'GET /api/merchants/analytics/products (Merchant)',
+                customerAnalytics: 'GET /api/merchants/analytics/customers (Merchant)',
+                inventoryAnalytics: 'GET /api/merchants/analytics/inventory (Merchant)',
+                revenueForecast: 'GET /api/merchants/analytics/forecast (Merchant)',
+                reviewAnalytics: 'GET /api/merchants/analytics/reviews (Merchant)'
+            },
+            deliveryZones: {
+                setLocation: 'PUT /api/merchants/zones/location (Merchant)',
+                getZones: 'GET /api/merchants/zones/delivery-zones (Merchant)',
+                addZone: 'POST /api/merchants/zones/delivery-zones (Merchant)',
+                updateZone: 'PUT /api/merchants/zones/delivery-zones/:zoneId (Merchant)',
+                deleteZone: 'DELETE /api/merchants/zones/delivery-zones/:zoneId (Merchant)',
+                checkDelivery: 'POST /api/merchants/zones/check-delivery',
+                getNearbyMerchants: 'POST /api/merchants/zones/nearby'
+            },
+            membership: {
+                getPlans: 'GET /api/membership/plans',
+                getMembership: 'GET /api/membership (User)',
+                subscribe: 'POST /api/membership/subscribe (User)',
+                cancel: 'POST /api/membership/cancel (User)',
+                getPremiumProducts: 'GET /api/membership/premium-products (User)',
+                checkBenefit: 'GET /api/membership/check-benefit (User)'
+            },
+            preBooking: {
+                create: 'POST /api/prebooking (User)',
+                getMyPreBookings: 'GET /api/prebooking/my-prebookings (User)',
+                cancel: 'DELETE /api/prebooking/:id (User)',
+                convertToOrder: 'POST /api/prebooking/:id/convert-to-order (User)',
+                markAvailable: 'PATCH /api/prebooking/products/:id/mark-available (Merchant)',
+                getAllPreBookings: 'GET /api/prebooking/admin/all (Admin)'
+            },
+            documentVerification: {
+                upload: 'POST /api/documents/upload (Merchant)',
+                getDocuments: 'GET /api/documents (Merchant)',
+                deleteDocument: 'DELETE /api/documents/:documentId (Merchant)',
+                getPending: 'GET /api/documents/admin/pending (Admin)',
+                verify: 'PUT /api/documents/admin/:merchantId/:documentId/verify (Admin)',
+                getExpiring: 'GET /api/documents/admin/expiring-soon (Admin)'
+            },
+            disputes: {
+                raiseDispute: 'POST /api/disputes (User)',
+                getMyDisputes: 'GET /api/disputes/my-disputes (User)',
+                getDisputeById: 'GET /api/disputes/:id (User/Admin)',
+                addMessage: 'POST /api/disputes/:id/message (User/Admin)',
+                escalate: 'PATCH /api/disputes/:id/escalate (User)',
+                getAllDisputes: 'GET /api/disputes/admin/all (Admin)',
+                resolveDispute: 'PUT /api/disputes/admin/:id/resolve (Admin)',
+                updateStatus: 'PATCH /api/disputes/admin/:id/status (Admin)'
+            },
+            financial: {
+                getMerchantEarnings: 'GET /api/financial/merchants/earnings (Merchant)',
+                getMerchantPayouts: 'GET /api/financial/merchants/payouts (Merchant)',
+                getPayoutById: 'GET /api/financial/payouts/:id (Merchant/Admin)',
+                getAllPayouts: 'GET /api/financial/admin/payouts (Admin)',
+                generatePayouts: 'POST /api/financial/admin/payouts/generate (Admin)',
+                processPayout: 'POST /api/financial/admin/payouts/:id/process (Admin)',
+                holdPayout: 'PATCH /api/financial/admin/payouts/:id/hold (Admin)',
+                getFinancialReports: 'GET /api/financial/admin/reports/financial (Admin)',
+                getGSTReport: 'GET /api/financial/admin/reports/gst (Admin)',
+                updateCommission: 'PUT /api/financial/admin/settings/commission (Admin)'
+            },
+            bulkOperations: {
+                bulkUpload: 'POST /api/bulk/products/bulk-upload (Merchant)',
+                bulkUpdatePrice: 'PUT /api/bulk/products/bulk-update-price (Merchant)',
+                bulkUpdateStock: 'PUT /api/bulk/products/bulk-update-stock (Merchant)',
+                exportProducts: 'GET /api/bulk/products/export (Merchant)'
+            },
+            search: {
+                advancedSearch: 'GET /api/search/products',
+                suggestions: 'GET /api/search/suggestions',
+                trending: 'GET /api/search/trending'
+            },
+            returns: {
+                requestReturn: 'POST /api/returns (User)',
+                getMyReturns: 'GET /api/returns/my-returns (User)',
+                getReturnById: 'GET /api/returns/:id (User/Admin)',
+                cancelReturn: 'DELETE /api/returns/:id (User)',
+                getAllReturns: 'GET /api/returns/admin/all (Admin)',
+                processReturn: 'PUT /api/returns/admin/:id/process (Admin)'
+            },
+            giftCards: {
+                checkBalance: 'GET /api/gift-cards/balance/:code (Public)',
+                validateGiftCard: 'POST /api/gift-cards/validate (User)',
+                redeemGiftCard: 'POST /api/gift-cards/redeem (User)',
+                getMyGiftCards: 'GET /api/gift-cards/my-cards (User)',
+                generateGiftCard: 'POST /api/gift-cards/admin/generate (Admin)',
+                getAllGiftCards: 'GET /api/gift-cards/admin/all (Admin)',
+                cancelGiftCard: 'PATCH /api/gift-cards/admin/:id/cancel (Admin)',
+                initiatePurchase: 'POST /api/gift-cards/purchase/initiate (User)',
+                verifyPurchase: 'POST /api/gift-cards/purchase/verify (User)'
             }
         },
         features: {
             implemented: [
                 'File Upload System (8 APIs)',
                 'Payment Gateway Integration (3 APIs)',
-                'Comprehensive Notification System (12 APIs)',
+                'Comprehensive Notification System (8 APIs)',
                 'Wishlist System (5 APIs)',
                 'Wallet & Credits System (8 APIs)',
-                'Loyalty Points Redemption (4 APIs)'
+                'Loyalty Points Redemption (4 APIs)',
+                'Referral System (5 APIs)',
+                'Offers & Promotions (10 APIs)',
+                'Merchant Analytics (6 APIs)',
+                'Delivery Zone Management (7 APIs)',
+                'Premium Membership (6 APIs)',
+                'Pre-Booking System (6 APIs)',
+                'Document Verification (6 APIs)',
+                'Dispute Management (8 APIs)',
+                'Financial Management & Payouts (10 APIs)',
+                'Merchant Bulk Operations (4 APIs)',
+                'Advanced Search & Filters (3 APIs)',
+                'Returns & Exchange System (6 APIs)',
+                'Gift Cards & Vouchers (7 APIs)'
             ],
-            total: '6 features, 103 APIs'
+            total: '20 features, 204 APIs'
         },
         documentation: 'See /backend/docs/ for detailed API documentation',
         health: 'GET /api/health'
@@ -251,6 +398,19 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/loyalty', loyaltyRoutes);
+app.use('/api/referral', referralRoutes);
+app.use('/api/offers', offerRoutes);
+app.use('/api/merchants/analytics', merchantAnalyticsRoutes);
+app.use('/api/merchants/zones', deliveryZoneRoutes);
+app.use('/api/membership', membershipRoutes);
+app.use('/api/prebooking', preBookingRoutes);
+app.use('/api/documents', documentRoutes);
+app.use('/api/disputes', disputeRoutes);
+app.use('/api/financial', financialRoutes);
+app.use('/api/bulk', bulkOperationsRoutes);
+app.use('/api/search', searchRoutes);
+app.use('/api/returns', returnRoutes);
+app.use('/api/gift-cards', giftCardRoutes);
 
 // Error handling
 app.use(notFound);

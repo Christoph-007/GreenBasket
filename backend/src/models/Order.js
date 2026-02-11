@@ -9,6 +9,11 @@ const orderSchema = new mongoose.Schema({
         default: () => 'GB' + Date.now() + Math.floor(Math.random() * 1000)
     },
 
+    razorpayOrderId: {
+        type: String,
+        index: true
+    },
+
     // Customer
     customer: {
         type: mongoose.Schema.Types.ObjectId,
@@ -70,6 +75,12 @@ const orderSchema = new mongoose.Schema({
     couponDiscount: {
         type: Number,
         default: 0
+    },
+
+    // Gift Card
+    giftCardApplied: {
+        code: String,
+        amountApplied: Number
     },
 
     // Delivery Details
@@ -168,16 +179,40 @@ const orderSchema = new mongoose.Schema({
         index: true
     },
 
-    // Status History
+    // Status History (Enhanced for tracking)
     statusHistory: [{
-        status: String,
+        status: {
+            type: String,
+            enum: ['pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'],
+            required: true
+        },
         timestamp: {
             type: Date,
             default: Date.now
         },
-        updatedBy: String,
-        note: String
+        note: String,
+        updatedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            refPath: 'statusHistory.updatedByModel'
+        },
+        updatedByModel: {
+            type: String,
+            enum: ['User', 'Merchant', 'Admin', 'System']
+        }
     }],
+
+    // Enhanced Tracking Fields
+    estimatedDeliveryTime: Date,
+    deliveryPersonnel: {
+        name: String,
+        phone: String,
+        vehicleNumber: String,
+        currentLocation: {
+            lat: Number,
+            lng: Number,
+            updatedAt: Date
+        }
+    },
 
     // Cancellation
     cancellationReason: String,

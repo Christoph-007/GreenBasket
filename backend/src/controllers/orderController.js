@@ -224,11 +224,23 @@ exports.updateOrderStatus = async (req, res) => {
             });
         }
 
-        // Update status
-        order.updateStatus(status, `merchant_${merchantId}`, note);
+        // Update status with history
+        order.status = status;
+
+        const statusEntry = {
+            status,
+            timestamp: new Date(),
+            note: note || getStatusMessage(status),
+            updatedBy: req.user._id,
+            updatedByModel: 'Merchant'
+        };
+
+        order.statusHistory.push(statusEntry);
 
         // Update specific timestamps
-        if (status === 'confirmed') order.confirmedAt = new Date();
+        if (status === 'confirmed' && !order.confirmedAt) order.confirmedAt = new Date();
+        if (status === 'preparing') order.preparingAt = new Date(); // If schema supports
+        if (status === 'out-for-delivery') order.outForDeliveryAt = new Date(); // If schema supports
         if (status === 'delivered') order.deliveredAt = new Date();
 
         await order.save();
@@ -490,5 +502,74 @@ exports.addReview = async (req, res) => {
             message: 'Error adding review',
             error: error.message
         });
+    }
+};
+
+// Enhanced Order Tracking
+exports.enhancedTrackOrder = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const order = await Order.findById(id)
+            .populate('deliveryPersonnel', 'name phone vehicleNumber')
+            .populate('merchant', 'businessName phone') // Location might not be in merchant model selection directly or needs processing
+            .select('orderId status statusHistory estimatedDeliveryTime deliveryPersonnel merchant');
+
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        // Calculate progress percentage
+        const statusSteps = ['pending', 'confirmed', 'preparing', 'out-for-delivery', 'delivered'];
+        const currentStepIndex = statusSteps.indexOf(order.status);
+        const progress = Math.max(0, Math.round(((currentStepIndex + 1) / statusSteps.length) * 100));
+
+        // Mock current location if not available
+        const currentLocation = order.deliveryPersonnel?.currentLocation ||
+            (order.merchant?.location ? order.merchant.location : { lat: 12.9716, lng: 77.5946 });
+
+        res.json({
+            success: true,
+            data: {
+                orderId: order.orderId,
+                status: order.status,
+                progress,
+                estimatedDelivery: order.estimatedDeliveryTime || new Date(Date.now() + 30 * 60 * 1000), // Mock 30 mins
+                currentLocation,
+                timeline: (order.statusHistory || []).sort((a, b) => b.timestamp - a.timestamp),
+                deliveryPersonnel: order.deliveryPersonnel,
+                merchant: order.merchant
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+exports.updateOrderLocation = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { lat, lng } = req.body;
+
+        if (!lat || !lng) {
+            return res.status(400).json({ success: false, error: 'Latitude and longitude are required' });
+        }
+
+        const order = await Order.findById(id);
+        if (!order) return res.status(404).json({ success: false, error: 'Order not found' });
+
+        if (!order.deliveryPersonnel) order.deliveryPersonnel = {};
+
+        order.deliveryPersonnel.currentLocation = {
+            lat,
+            lng,
+            updatedAt: new Date()
+        };
+        await order.save();
+
+        OrderSocket.updateOrderLocation(order._id, order.customer, { lat, lng });
+
+        res.json({ success: true, message: 'Location updated' });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
     }
 };

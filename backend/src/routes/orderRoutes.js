@@ -10,6 +10,8 @@ router.post('/', authenticate, validateOrder, validate, orderController.createOr
 router.get('/my-orders', authenticate, orderController.getMyOrders);
 router.get('/:id', authenticate, orderController.getOrderById);
 router.patch('/:id/cancel', authenticate, orderController.cancelOrder);
+router.get('/:id/track', authenticate, orderController.enhancedTrackOrder);
+router.patch('/:id/location', authenticate, orderController.updateOrderLocation);
 
 // Merchant routes
 router.get('/merchant/orders', authenticate, isMerchant, orderController.getMerchantOrders);

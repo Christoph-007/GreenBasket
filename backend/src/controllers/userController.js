@@ -328,3 +328,46 @@ exports.removeFCMToken = async (req, res) => {
         });
     }
 };
+
+exports.getAllUsers = async (req, res) => {
+    try {
+        const { page = 1, limit = 20, search } = req.query;
+        let query = {};
+
+        if (search) {
+            query = {
+                $or: [
+                    { name: { $regex: search, $options: 'i' } },
+                    { email: { $regex: search, $options: 'i' } },
+                    { phone: { $regex: search, $options: 'i' } }
+                ]
+            };
+        }
+
+        const skip = (page - 1) * limit;
+
+        const [users, total] = await Promise.all([
+            User.find(query)
+                .select('-password -fcmTokens') // hide sensitive data
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(parseInt(limit)),
+            User.countDocuments(query)
+        ]);
+
+        res.json({
+            success: true,
+            data: {
+                users,
+                pagination: {
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    total,
+                    pages: Math.ceil(total / limit)
+                }
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};

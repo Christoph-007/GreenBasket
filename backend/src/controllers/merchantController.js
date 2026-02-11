@@ -102,3 +102,44 @@ exports.getDashboardStats = async (req, res) => {
         });
     }
 };
+
+exports.getAllMerchants = async (req, res) => {
+    try {
+        const { page = 1, limit = 20, status, search } = req.query;
+        let query = {};
+
+        if (status) query.verificationStatus = status;
+        if (search) {
+            query.$or = [
+                { businessName: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        const skip = (page - 1) * limit;
+
+        const [merchants, total] = await Promise.all([
+            Merchant.find(query)
+                .select('-password -bankDetails')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(parseInt(limit)),
+            Merchant.countDocuments(query)
+        ]);
+
+        res.json({
+            success: true,
+            data: {
+                merchants,
+                pagination: {
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    total,
+                    pages: Math.ceil(total / limit)
+                }
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};

@@ -1,0 +1,737 @@
+const Offer = require('../models/Offer');
+const Cart = require('../models/Cart');
+const Order = require('../models/Order');
+const User = require('../models/User');
+
+/**
+ * @desc    Create new offer
+ * @route   POST /api/offers
+ * @access  Private (Merchant/Admin)
+ */
+exports.createOffer = async (req, res) => {
+    try {
+        const {
+            title, description, type, discountPercentage,
+            discountAmount, maxDiscountCap, applicableOn,
+            categories, products, minOrderValue,
+            startDate, endDate, isFlashSale,
+            totalUsageLimit, usagePerUser,
+            couponCode, isPublic
+        } = req.body;
+
+        // Validation
+        if (!title || !type || !startDate || !endDate) {
+            return res.status(400).json({
+                success: false,
+                error: 'title, type, startDate, and endDate are required'
+            });
+        }
+
+        if (type === 'percentage' && !discountPercentage) {
+            return res.status(400).json({
+                success: false,
+                error: 'discountPercentage is required for percentage type'
+            });
+        }
+
+        if (type === 'flat' && !discountAmount) {
+            return res.status(400).json({
+                success: false,
+                error: 'discountAmount is required for flat type'
+            });
+        }
+
+        if (new Date(startDate) >= new Date(endDate)) {
+            return res.status(400).json({
+                success: false,
+                error: 'endDate must be after startDate'
+            });
+        }
+
+        // Check coupon code uniqueness
+        if (couponCode) {
+            const existingOffer = await Offer.findOne({
+                couponCode: couponCode.toUpperCase()
+            });
+
+            if (existingOffer) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Coupon code already exists'
+                });
+            }
+        }
+
+        // Determine if merchant or admin
+        const isAdmin = req.user.userType === 'admin';
+        const merchantId = isAdmin ? null : req.user._id;
+
+        const offer = await Offer.create({
+            merchant: merchantId,
+            createdBy: isAdmin ? 'admin' : 'merchant',
+            title,
+            description,
+            type,
+            discountPercentage,
+            discountAmount,
+            maxDiscountCap,
+            applicableOn: applicableOn || 'all',
+            categories: categories || [],
+            products: products || [],
+            minOrderValue: minOrderValue || 0,
+            startDate: new Date(startDate),
+            endDate: new Date(endDate),
+            isFlashSale: isFlashSale || false,
+            totalUsageLimit,
+            usagePerUser: usagePerUser || 1,
+            couponCode: couponCode ? couponCode.toUpperCase() : undefined,
+            isPublic: isPublic !== undefined ? isPublic : true,
+            status: 'active'
+        });
+
+        res.status(201).json({
+            success: true,
+            message: 'Offer created successfully',
+            data: {
+                offer: {
+                    _id: offer._id,
+                    title: offer.title,
+                    couponCode: offer.couponCode,
+                    status: offer.status,
+                    startDate: offer.startDate,
+                    endDate: offer.endDate,
+                    type: offer.type,
+                    isFlashSale: offer.isFlashSale
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Create offer error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to create offer',
+            details: error.message
+        });
+    }
+};
+
+/**
+ * @desc    Get all offers for merchant
+ * @route   GET /api/offers/merchant
+ * @access  Private (Merchant)
+ */
+exports.getMerchantOffers = async (req, res) => {
+    try {
+        const { status, page = 1, limit = 20 } = req.query;
+
+        const query = { merchant: req.user._id };
+
+        if (status) {
+            query.status = status;
+        }
+
+        // Auto-expire offers
+        await Offer.updateMany(
+            {
+                merchant: req.user._id,
+                endDate: { $lt: new Date() },
+                status: 'active'
+            },
+            { $set: { status: 'expired' } }
+        );
+
+        const skip = (page - 1) * limit;
+
+        const [offers, total] = await Promise.all([
+            Offer.find(query)
+                .populate('categories', 'name')
+                .populate('products', 'name')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(parseInt(limit)),
+            Offer.countDocuments(query)
+        ]);
+
+        res.json({
+            success: true,
+            data: {
+                offers,
+                pagination: {
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    total,
+                    pages: Math.ceil(total / limit)
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Get merchant offers error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch merchant offers',
+            details: error.message
+        });
+    }
+};
+
+/**
+ * @desc    Get available offers for user
+ * @route   GET /api/offers/available
+ * @access  Private (User)
+ */
+exports.getAvailableOffers = async (req, res) => {
+    try {
+        const { merchantId, cartTotal } = req.query;
+
+        const query = {
+            status: 'active',
+            startDate: { $lte: new Date() },
+            endDate: { $gte: new Date() },
+            isPublic: true
+        };
+
+        if (merchantId) {
+            query.$or = [
+                { merchant: merchantId },
+                { merchant: null } // Platform-wide offers
+            ];
+        }
+
+        const offers = await Offer.find(query)
+            .populate('categories', 'name')
+            .sort({ createdAt: -1 });
+
+        // Check eligibility for each offer
+        const offersWithEligibility = await Promise.all(
+            offers.map(async (offer) => {
+                let isEligible = true;
+                let ineligibleReason = null;
+
+                // Check min order value
+                if (cartTotal && offer.minOrderValue > 0) {
+                    if (parseFloat(cartTotal) < offer.minOrderValue) {
+                        isEligible = false;
+                        ineligibleReason = `Minimum order value ₹${offer.minOrderValue} required`;
+                    }
+                }
+
+                // Check usage per user
+                if (offer.usagePerUser) {
+                    const userUsageCount = offer.usedBy.filter(
+                        u => u.user.toString() === req.user._id.toString()
+                    ).length;
+
+                    if (userUsageCount >= offer.usagePerUser) {
+                        isEligible = false;
+                        ineligibleReason = 'You have already used this offer';
+                    }
+                }
+
+                // Check total usage limit
+                if (offer.totalUsageLimit && offer.usedCount >= offer.totalUsageLimit) {
+                    isEligible = false;
+                    ineligibleReason = 'Offer limit reached';
+                }
+
+                return {
+                    _id: offer._id,
+                    title: offer.title,
+                    description: offer.description,
+                    type: offer.type,
+                    discountPercentage: offer.discountPercentage,
+                    discountAmount: offer.discountAmount,
+                    maxDiscountCap: offer.maxDiscountCap,
+                    couponCode: offer.couponCode,
+                    minOrderValue: offer.minOrderValue,
+                    endDate: offer.endDate,
+                    isFlashSale: offer.isFlashSale,
+                    isEligible,
+                    ineligibleReason
+                };
+            })
+        );
+
+        res.json({
+            success: true,
+            data: {
+                offers: offersWithEligibility
+            }
+        });
+    } catch (error) {
+        console.error('Get available offers error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch available offers',
+            details: error.message
+        });
+    }
+};
+
+/**
+ * @desc    Apply coupon code to cart
+ * @route   POST /api/offers/apply-coupon
+ * @access  Private (User)
+ */
+exports.applyCoupon = async (req, res) => {
+    try {
+        const { couponCode } = req.body;
+
+        if (!couponCode) {
+            return res.status(400).json({
+                success: false,
+                error: 'Coupon code is required'
+            });
+        }
+
+        // Find offer
+        const offer = await Offer.findOne({
+            couponCode: couponCode.toUpperCase(),
+            status: 'active',
+            startDate: { $lte: new Date() },
+            endDate: { $gte: new Date() }
+        });
+
+        if (!offer) {
+            return res.status(404).json({
+                success: false,
+                error: 'Invalid or expired coupon code'
+            });
+        }
+
+        // Check usage per user
+        const userUsageCount = offer.usedBy.filter(
+            u => u.user.toString() === req.user._id.toString()
+        ).length;
+
+        if (offer.usagePerUser && userUsageCount >= offer.usagePerUser) {
+            return res.status(400).json({
+                success: false,
+                error: 'You have already used this coupon'
+            });
+        }
+
+        // Check total usage limit
+        if (offer.totalUsageLimit && offer.usedCount >= offer.totalUsageLimit) {
+            return res.status(400).json({
+                success: false,
+                error: 'Coupon limit has been reached'
+            });
+        }
+
+        // Get cart
+        const cart = await Cart.findOne({ user: req.user._id })
+            .populate('items.product');
+
+        if (!cart || cart.items.length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'Cart is empty'
+            });
+        }
+
+        const cartTotal = cart.items.reduce(
+            (sum, item) => sum + (item.product.price * item.quantity), 0
+        );
+
+        // Check min order value
+        if (offer.minOrderValue && cartTotal < offer.minOrderValue) {
+            return res.status(400).json({
+                success: false,
+                error: `Minimum order value ₹${offer.minOrderValue} required`,
+                currentTotal: cartTotal,
+                required: offer.minOrderValue
+            });
+        }
+
+        // Calculate discount
+        let discount = 0;
+
+        if (offer.type === 'percentage') {
+            discount = (cartTotal * offer.discountPercentage) / 100;
+            if (offer.maxDiscountCap) {
+                discount = Math.min(discount, offer.maxDiscountCap);
+            }
+        } else if (offer.type === 'flat') {
+            discount = offer.discountAmount;
+        } else if (offer.type === 'free_delivery') {
+            discount = cart.deliveryCharge || 0;
+        }
+
+        discount = Math.round(discount * 100) / 100;
+
+        // Apply to cart
+        cart.appliedCoupon = {
+            code: couponCode.toUpperCase(),
+            offerId: offer._id,
+            discount
+        };
+        cart.discount = discount;
+        cart.finalTotal = Math.max(0, cartTotal - discount + (cart.deliveryCharge || 0));
+
+        await cart.save();
+
+        res.json({
+            success: true,
+            message: 'Coupon applied successfully',
+            data: {
+                discount,
+                originalTotal: cartTotal,
+                finalTotal: cart.finalTotal,
+                offerTitle: offer.title,
+                couponCode: offer.couponCode
+            }
+        });
+    } catch (error) {
+        console.error('Apply coupon error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to apply coupon',
+            details: error.message
+        });
+    }
+};
+
+/**
+ * @desc    Remove coupon from cart
+ * @route   DELETE /api/offers/remove-coupon
+ * @access  Private (User)
+ */
+exports.removeCoupon = async (req, res) => {
+    try {
+        const cart = await Cart.findOne({ user: req.user._id })
+            .populate('items.product');
+
+        if (!cart) {
+            return res.status(404).json({
+                success: false,
+                error: 'Cart not found'
+            });
+        }
+
+        cart.appliedCoupon = null;
+        cart.discount = 0;
+
+        const cartTotal = cart.items.reduce(
+            (sum, item) => sum + (item.product.price * item.quantity), 0
+        );
+        cart.finalTotal = cartTotal + (cart.deliveryCharge || 0);
+
+        await cart.save();
+
+        res.json({
+            success: true,
+            message: 'Coupon removed successfully',
+            data: {
+                total: cartTotal,
+                finalTotal: cart.finalTotal
+            }
+        });
+    } catch (error) {
+        console.error('Remove coupon error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to remove coupon',
+            details: error.message
+        });
+    }
+};
+
+/**
+ * @desc    Update offer
+ * @route   PUT /api/offers/:id
+ * @access  Private (Merchant/Admin - Owner)
+ */
+exports.updateOffer = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updates = req.body;
+
+        const offer = await Offer.findById(id);
+
+        if (!offer) {
+            return res.status(404).json({
+                success: false,
+                error: 'Offer not found'
+            });
+        }
+
+        // Check ownership
+        const isAdmin = req.user.userType === 'admin';
+        if (!isAdmin && offer.merchant && offer.merchant.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                error: 'You can only update your own offers'
+            });
+        }
+
+        // Cannot update coupon code if already used
+        if (updates.couponCode && offer.usedCount > 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'Cannot update coupon code of an offer that has been used'
+            });
+        }
+
+        // Check if coupon code unique (if changing)
+        if (updates.couponCode && updates.couponCode !== offer.couponCode) {
+            const existingOffer = await Offer.findOne({
+                couponCode: updates.couponCode.toUpperCase(),
+                _id: { $ne: id }
+            });
+
+            if (existingOffer) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Coupon code already exists'
+                });
+            }
+        }
+
+        const allowedUpdates = [
+            'title', 'description', 'discountPercentage', 'discountAmount',
+            'maxDiscountCap', 'applicableOn', 'categories', 'products',
+            'minOrderValue', 'startDate', 'endDate', 'totalUsageLimit',
+            'usagePerUser', 'couponCode', 'isPublic', 'status'
+        ];
+
+        allowedUpdates.forEach(field => {
+            if (updates[field] !== undefined) {
+                offer[field] = updates[field];
+            }
+        });
+
+        await offer.save();
+
+        res.json({
+            success: true,
+            message: 'Offer updated successfully',
+            data: { offer }
+        });
+    } catch (error) {
+        console.error('Update offer error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to update offer',
+            details: error.message
+        });
+    }
+};
+
+/**
+ * @desc    Delete/Deactivate offer
+ * @route   DELETE /api/offers/:id
+ * @access  Private (Merchant/Admin)
+ */
+exports.deleteOffer = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const offer = await Offer.findById(id);
+
+        if (!offer) {
+            return res.status(404).json({
+                success: false,
+                error: 'Offer not found'
+            });
+        }
+
+        const isAdmin = req.user.userType === 'admin';
+        if (!isAdmin && offer.merchant && offer.merchant.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                error: 'You can only delete your own offers'
+            });
+        }
+
+        // Deactivate instead of hard delete (preserve history)
+        offer.status = 'inactive';
+        await offer.save();
+
+        res.json({
+            success: true,
+            message: 'Offer deactivated successfully'
+        });
+    } catch (error) {
+        console.error('Delete offer error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to delete offer',
+            details: error.message
+        });
+    }
+};
+
+/**
+ * @desc    Get offer analytics
+ * @route   GET /api/offers/:id/analytics
+ * @access  Private (Merchant/Admin)
+ */
+exports.getOfferAnalytics = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const offer = await Offer.findById(id)
+            .populate('usedBy.orderId', 'totalAmount createdAt');
+
+        if (!offer) {
+            return res.status(404).json({
+                success: false,
+                error: 'Offer not found'
+            });
+        }
+
+        const isAdmin = req.user.userType === 'admin';
+        if (!isAdmin && offer.merchant && offer.merchant.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                error: 'Access denied'
+            });
+        }
+
+        const usedBy = offer.usedBy;
+        const uniqueUsers = new Set(usedBy.map(u => u.user.toString())).size;
+        const totalDiscountGiven = usedBy.reduce((sum, u) => sum + (u.discountAmount || 0), 0);
+        const totalRevenueGenerated = usedBy.reduce((sum, u) => {
+            return sum + (u.orderId ? u.orderId.totalAmount : 0);
+        }, 0);
+
+        // Usage by day
+        const usageByDay = {};
+        usedBy.forEach(u => {
+            const date = u.usedAt.toISOString().split('T')[0];
+            if (!usageByDay[date]) {
+                usageByDay[date] = { uses: 0, revenue: 0 };
+            }
+            usageByDay[date].uses++;
+            usageByDay[date].revenue += u.orderId ? u.orderId.totalAmount : 0;
+        });
+
+        const usageByDayArray = Object.keys(usageByDay).map(date => ({
+            date,
+            uses: usageByDay[date].uses,
+            revenue: usageByDay[date].revenue
+        })).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        res.json({
+            success: true,
+            data: {
+                totalUses: offer.usedCount,
+                uniqueUsers,
+                totalDiscountGiven: Math.round(totalDiscountGiven),
+                totalRevenueGenerated: Math.round(totalRevenueGenerated),
+                averageOrderValue: usedBy.length > 0
+                    ? Math.round(totalRevenueGenerated / usedBy.length)
+                    : 0,
+                remainingUses: offer.totalUsageLimit
+                    ? offer.totalUsageLimit - offer.usedCount
+                    : 'Unlimited',
+                usageByDay: usageByDayArray
+            }
+        });
+    } catch (error) {
+        console.error('Get offer analytics error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch offer analytics',
+            details: error.message
+        });
+    }
+};
+
+/**
+ * @desc    Get flash sales
+ * @route   GET /api/offers/flash-sales
+ * @access  Public
+ */
+exports.getFlashSales = async (req, res) => {
+    try {
+        const now = new Date();
+
+        const flashSales = await Offer.find({
+            isFlashSale: true,
+            status: 'active',
+            startDate: { $lte: now },
+            endDate: { $gte: now }
+        })
+            .populate('merchant', 'businessName logo')
+            .sort({ endDate: 1 }); // Sort by ending soonest
+
+        const flashSalesWithTime = flashSales.map(sale => ({
+            _id: sale._id,
+            title: sale.title,
+            description: sale.description,
+            type: sale.type,
+            discountPercentage: sale.discountPercentage,
+            discountAmount: sale.discountAmount,
+            couponCode: sale.couponCode,
+            endDate: sale.endDate,
+            timeRemainingSeconds: Math.max(
+                0,
+                Math.floor((sale.endDate - now) / 1000)
+            ),
+            merchant: sale.merchant,
+            usedCount: sale.usedCount,
+            totalUsageLimit: sale.totalUsageLimit
+        }));
+
+        res.json({
+            success: true,
+            data: {
+                flashSales: flashSalesWithTime
+            }
+        });
+    } catch (error) {
+        console.error('Get flash sales error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch flash sales',
+            details: error.message
+        });
+    }
+};
+
+/**
+ * @desc    Get all platform offers (Admin)
+ * @route   GET /api/offers/admin/all
+ * @access  Private (Admin)
+ */
+exports.getAllOffers = async (req, res) => {
+    try {
+        const { status, type, page = 1, limit = 20 } = req.query;
+
+        const query = {};
+        if (status) query.status = status;
+        if (type) query.type = type;
+
+        const skip = (page - 1) * limit;
+
+        const [offers, total] = await Promise.all([
+            Offer.find(query)
+                .populate('merchant', 'businessName')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(parseInt(limit)),
+            Offer.countDocuments(query)
+        ]);
+
+        res.json({
+            success: true,
+            data: {
+                offers,
+                pagination: {
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    total,
+                    pages: Math.ceil(total / limit)
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Get all offers error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch offers',
+            details: error.message
+        });
+    }
+};

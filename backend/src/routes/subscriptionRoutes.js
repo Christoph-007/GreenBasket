@@ -7,6 +7,7 @@ router.use(authenticate);
 
 router.post('/', subscriptionController.createSubscription);
 router.get('/', subscriptionController.getMySubscriptions);
+router.get('/:id', subscriptionController.getSubscriptionById);
 router.patch('/:id/status', subscriptionController.updateSubscriptionStatus);
 
 module.exports = router;

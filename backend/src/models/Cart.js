@@ -28,7 +28,34 @@ const cartSchema = new mongoose.Schema({
             default: Date.now
         }
     }],
+
+    // Applied Coupon/Offer
+    appliedCoupon: {
+        code: String,
+        offerId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Offer'
+        },
+        discount: {
+            type: Number,
+            default: 0
+        }
+    },
+
+    // Pricing
     total: {
+        type: Number,
+        default: 0
+    },
+    discount: {
+        type: Number,
+        default: 0
+    },
+    deliveryCharge: {
+        type: Number,
+        default: 0
+    },
+    finalTotal: {
         type: Number,
         default: 0
     }

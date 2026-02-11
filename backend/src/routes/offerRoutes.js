@@ -1,0 +1,45 @@
+const express = require('express');
+const router = express.Router();
+const offerController = require('../controllers/offerController');
+const { protect, restrictTo } = require('../middlewares/authMiddleware');
+
+// Public routes
+router.get('/flash-sales', offerController.getFlashSales);
+
+// Protected routes
+router.use(protect);
+
+// User routes
+router.get('/available', offerController.getAvailableOffers);
+router.post('/cart/apply-coupon', offerController.applyCoupon);
+router.delete('/cart/remove-coupon', offerController.removeCoupon);
+
+// Merchant routes
+router.get('/merchant',
+    restrictTo('merchant'),
+    offerController.getMerchantOffers
+);
+router.post('/',
+    restrictTo('merchant', 'admin'),
+    offerController.createOffer
+);
+router.get('/:id/analytics',
+    restrictTo('merchant', 'admin'),
+    offerController.getOfferAnalytics
+);
+router.put('/:id',
+    restrictTo('merchant', 'admin'),
+    offerController.updateOffer
+);
+router.delete('/:id',
+    restrictTo('merchant', 'admin'),
+    offerController.deleteOffer
+);
+
+// Admin routes
+router.get('/admin/all',
+    restrictTo('admin'),
+    offerController.getAllOffers
+);
+
+module.exports = router;

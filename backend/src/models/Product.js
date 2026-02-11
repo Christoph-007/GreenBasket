@@ -147,6 +147,27 @@ const productSchema = new mongoose.Schema({
         default: 0
     },
 
+    // Premium Membership Features
+    isPremiumExclusive: {
+        type: Boolean,
+        default: false
+    },
+
+    // Pre-booking Features
+    isPreBookable: {
+        type: Boolean,
+        default: false
+    },
+    expectedAvailabilityDate: {
+        type: Date
+    },
+
+    // Active Status
+    isActive: {
+        type: Boolean,
+        default: true
+    },
+
     // SEO
     slug: {
         type: String,

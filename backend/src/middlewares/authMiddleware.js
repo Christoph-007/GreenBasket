@@ -101,3 +101,28 @@ exports.isUser = (req, res, next) => {
     }
     next();
 };
+
+// Restrict to specific user types
+exports.restrictTo = (...roles) => {
+    return (req, res, next) => {
+        if (!roles.includes(req.userType)) {
+            return res.status(403).json({
+                success: false,
+                message: `Access denied. Only ${roles.join(', ')} can access this resource.`
+            });
+        }
+
+        // Additional check for merchants
+        if (req.userType === 'merchant' && req.user.verificationStatus !== 'approved') {
+            return res.status(403).json({
+                success: false,
+                message: 'Merchant account not yet approved'
+            });
+        }
+
+        next();
+    };
+};
+
+// Alias for authenticate (commonly used as 'protect')
+exports.protect = exports.authenticate;
