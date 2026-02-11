@@ -72,6 +72,6 @@ returnSchema.pre('save', function (next) {
 
 returnSchema.index({ order: 1 });
 returnSchema.index({ user: 1, status: 1 });
-returnSchema.index({ returnId: 1 }, { unique: true });
+
 
 module.exports = mongoose.model('Return', returnSchema);

@@ -18,7 +18,11 @@ try {
             admin.initializeApp({
                 credential: admin.credential.cert({
                     projectId: process.env.FIREBASE_PROJECT_ID,
-                    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+                    privateKey: (() => {
+                        const key = process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n');
+                        if (!key.includes('BEGIN PRIVATE KEY')) throw new Error('Invalid PEM format');
+                        return key;
+                    })(),
                     clientEmail: process.env.FIREBASE_CLIENT_EMAIL
                 })
             });

@@ -191,17 +191,175 @@ exports.updateSubscriptionStatus = async (req, res) => {
 
 exports.getSubscriptionById = async (req, res) => {
     try {
-        const subscription = await Subscription.findOne({ _id: req.params.id, user: req.user.id })
-            .populate('items.product')
-            .populate('merchant', 'businessName')
-            .populate('deliveryAddress');
+        const subscription = await Subscription.findById(req.params.id)
+            .populate('items.product', 'name primaryImage price unit')
+            .populate('merchant', 'businessName logo');
 
         if (!subscription) {
             return res.status(404).json({ success: false, error: 'Subscription not found' });
         }
 
-        res.json({ success: true, data: subscription });
+        const isOwner = subscription.user.toString() === req.user._id.toString();
+        const isMerchant = subscription.merchant._id.toString() === req.user._id.toString();
+        const isAdmin = req.user.userType === 'admin';
+
+        if (!isOwner && !isMerchant && !isAdmin) {
+            return res.status(403).json({ success: false, error: 'Access denied' });
+        }
+
+        res.json({ success: true, data: { subscription } });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
 };
+
+/**
+ * @desc    Update subscription
+ * @route   PUT /api/subscriptions/:id
+ * @access  Private (User)
+ */
+exports.updateSubscription = async (req, res) => {
+    try {
+        const { frequency, deliveryAddress, items, deliveryTime } = req.body;
+
+        const subscription = await Subscription.findOne({
+            _id: req.params.id,
+            user: req.user._id
+        });
+
+        if (!subscription) {
+            return res.status(404).json({ success: false, error: 'Subscription not found or access denied' });
+        }
+
+        if (subscription.status === 'cancelled') {
+            return res.status(400).json({ success: false, error: 'Cannot update a cancelled subscription' });
+        }
+
+        if (frequency && ['daily', 'weekly', 'biweekly', 'monthly'].includes(frequency)) {
+            subscription.frequency = frequency;
+
+            // Recalculate next delivery date
+            const frequencyDays = { daily: 1, weekly: 7, biweekly: 14, monthly: 30 };
+            const nextDate = new Date();
+            nextDate.setDate(nextDate.getDate() + frequencyDays[frequency]);
+            subscription.nextDeliveryDate = nextDate;
+        }
+
+        if (deliveryAddress) {
+            subscription.deliveryAddress = deliveryAddress;
+        }
+
+        if (deliveryTime) {
+            subscription.deliveryTime = deliveryTime;
+        }
+
+        if (items && items.length > 0) {
+            const Product = require('../models/Product');
+
+            for (const item of items) {
+                const product = await Product.findById(item.productId);
+                if (!product) {
+                    return res.status(400).json({ success: false, error: `Product ${item.productId} not found` });
+                }
+                if (product.merchant.toString() !== subscription.merchant.toString()) {
+                    return res.status(400).json({ success: false, error: 'All products must be from the same merchant' });
+                }
+                if (item.quantity < 1) {
+                    return res.status(400).json({ success: false, error: 'Quantity must be at least 1' });
+                }
+            }
+
+            subscription.items = items.map(i => ({
+                product: i.productId,
+                quantity: i.quantity,
+                preparationType: i.preparationType
+            }));
+        }
+
+        await subscription.save();
+
+        res.json({
+            success: true,
+            message: 'Subscription updated successfully',
+            data: { subscription }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+/**
+ * @desc    Delete/Cancel subscription
+ * @route   DELETE /api/subscriptions/:id
+ * @access  Private (User)
+ */
+exports.deleteSubscription = async (req, res) => {
+    try {
+        const subscription = await Subscription.findOne({
+            _id: req.params.id,
+            user: req.user._id
+        });
+
+        if (!subscription) {
+            return res.status(404).json({ success: false, error: 'Subscription not found or access denied' });
+        }
+
+        if (subscription.status === 'active') {
+            // Soft-cancel active subscriptions
+            subscription.status = 'cancelled';
+            await subscription.save();
+
+            return res.json({
+                success: true,
+                message: 'Subscription cancelled. It will not renew.'
+            });
+        }
+
+        // Hard delete paused/cancelled subscriptions
+        await subscription.deleteOne();
+
+        res.json({
+            success: true,
+            message: 'Subscription deleted successfully'
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+/**
+ * @desc    Get merchant's subscriptions
+ * @route   GET /api/subscriptions/merchant/all
+ * @access  Private (Merchant)
+ */
+exports.getMerchantSubscriptions = async (req, res) => {
+    try {
+        const { status, page = 1, limit = 20 } = req.query;
+
+        const query = { merchant: req.user._id };
+        if (status) query.status = status;
+
+        const skip = (page - 1) * limit;
+
+        const [subscriptions, total] = await Promise.all([
+            Subscription.find(query)
+                .populate('user', 'name email phone')
+                .populate('items.product', 'name price unit')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(parseInt(limit)),
+            Subscription.countDocuments(query)
+        ]);
+
+        res.json({
+            success: true,
+            data: {
+                subscriptions,
+                pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / limit) }
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+

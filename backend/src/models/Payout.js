@@ -82,6 +82,6 @@ payoutSchema.pre('save', async function (next) {
 
 payoutSchema.index({ merchant: 1, status: 1 });
 payoutSchema.index({ 'period.startDate': 1, 'period.endDate': 1 });
-payoutSchema.index({ payoutId: 1 }, { unique: true });
+
 
 module.exports = mongoose.model('Payout', payoutSchema);

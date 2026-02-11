@@ -455,4 +455,145 @@ exports.updatePreBookingStatus = async (req, res) => {
     }
 };
 
+/**
+ * @desc    Update pre-booking settings for a product (Merchant)
+ * @route   PATCH /api/prebooking/merchant/products/:productId/prebooking
+ * @access  Private (Merchant)
+ */
+exports.updatePreBookingSettings = async (req, res) => {
+    try {
+        const { productId } = req.params;
+        const {
+            isPreBookable,
+            expectedAvailability,
+            preBookingOpenDate,
+            maxPreBookingsAllowed,
+            preBookingMessage
+        } = req.body;
+
+        const product = await Product.findOne({
+            _id: productId,
+            merchant: req.user._id
+        });
+
+        if (!product) {
+            return res.status(404).json({
+                success: false,
+                error: 'Product not found or you do not have permission to edit it'
+            });
+        }
+
+        // Validate dates
+        if (expectedAvailability && new Date(expectedAvailability) <= new Date()) {
+            return res.status(400).json({
+                success: false,
+                error: 'expectedAvailability must be a future date'
+            });
+        }
+
+        if (isPreBookable !== undefined) {
+            product.isPreBookable = Boolean(isPreBookable);
+        }
+
+        if (!product.preBookingDetails) {
+            product.preBookingDetails = {};
+        }
+
+        if (expectedAvailability) {
+            product.preBookingDetails.expectedAvailability = new Date(expectedAvailability);
+        }
+
+        if (preBookingOpenDate) {
+            product.preBookingDetails.preBookingOpenDate = new Date(preBookingOpenDate);
+        }
+
+        if (maxPreBookingsAllowed !== undefined) {
+            if (maxPreBookingsAllowed < 1) {
+                return res.status(400).json({ success: false, error: 'maxPreBookingsAllowed must be at least 1' });
+            }
+            product.preBookingDetails.maxPreBookingsAllowed = maxPreBookingsAllowed;
+        }
+
+        if (preBookingMessage) {
+            product.preBookingDetails.preBookingMessage = preBookingMessage;
+        }
+
+        await product.save();
+
+        res.json({
+            success: true,
+            message: 'Pre-booking settings updated successfully',
+            data: {
+                productId: product._id,
+                productName: product.name,
+                isPreBookable: product.isPreBookable,
+                preBookingDetails: product.preBookingDetails
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: 'Failed to update pre-booking settings',
+            details: error.message
+        });
+    }
+};
+
+/**
+ * @desc    Get merchant's pre-bookings
+ * @route   GET /api/prebooking/merchant/all
+ * @access  Private (Merchant)
+ */
+exports.getMerchantPreBookings = async (req, res) => {
+    try {
+        const { status, productId, page = 1, limit = 20 } = req.query;
+
+        const query = { merchant: req.user._id };
+        if (status) query.status = status;
+        if (productId) query.product = productId;
+
+        const skip = (page - 1) * limit;
+
+        const [preBookings, total] = await Promise.all([
+            PreBooking.find(query)
+                .populate('user', 'name email phone')
+                .populate('product', 'name primaryImage price stock')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(parseInt(limit)),
+            PreBooking.countDocuments(query)
+        ]);
+
+        const [pendingCount, availableCount, orderedCount] = await Promise.all([
+            PreBooking.countDocuments({ merchant: req.user._id, status: 'pending' }),
+            PreBooking.countDocuments({ merchant: req.user._id, status: 'available' }),
+            PreBooking.countDocuments({ merchant: req.user._id, status: 'ordered' })
+        ]);
+
+        res.json({
+            success: true,
+            data: {
+                preBookings,
+                stats: {
+                    totalPending: pendingCount,
+                    totalAvailable: availableCount,
+                    totalOrdered: orderedCount
+                },
+                pagination: {
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    total,
+                    pages: Math.ceil(total / limit)
+                }
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch merchant pre-bookings',
+            details: error.message
+        });
+    }
+};
+
 module.exports = exports;

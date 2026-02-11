@@ -573,3 +573,85 @@ exports.updateOrderLocation = async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 };
+
+/**
+ * @desc    Get comprehensive order tracking information
+ * @route   GET /api/orders/:orderId/tracking
+ * @access  Private (User/Merchant/Admin)
+ */
+exports.getOrderTracking = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+
+        const order = await Order.findOne({ orderId })
+            .populate('merchant', 'businessName phone')
+            .populate('customer', 'name phone');
+
+        if (!order) {
+            return res.status(404).json({ success: false, error: 'Order not found' });
+        }
+
+        // Access control
+        const isCustomer = order.customer._id.toString() === req.user._id.toString();
+        const isMerchant = order.merchant._id.toString() === req.user._id.toString();
+        const isAdmin = req.user.userType === 'admin';
+
+        if (!isCustomer && !isMerchant && !isAdmin) {
+            return res.status(403).json({ success: false, error: 'Access denied' });
+        }
+
+        // Build timeline
+        const statusConfig = [
+            { status: 'pending', label: 'Order Placed', description: 'Your order has been placed successfully' },
+            { status: 'confirmed', label: 'Order Confirmed', description: 'Merchant has confirmed your order' },
+            { status: 'preparing', label: 'Preparing', description: 'Your order is being prepared' },
+            { status: 'out_for_delivery', label: 'Out for Delivery', description: 'Your order is on the way' },
+            { status: 'delivered', label: 'Delivered', description: 'Order delivered successfully' }
+        ];
+
+        if (order.status === 'cancelled') {
+            statusConfig.push({
+                status: 'cancelled',
+                label: 'Cancelled',
+                description: 'Order has been cancelled'
+            });
+        }
+
+        const historyMap = {};
+        (order.statusHistory || []).forEach(h => {
+            historyMap[h.status] = { timestamp: h.timestamp, note: h.note };
+        });
+
+        const timeline = statusConfig.map(config => ({
+            status: config.status,
+            label: config.label,
+            description: config.description,
+            timestamp: historyMap[config.status]?.timestamp || null,
+            note: historyMap[config.status]?.note || null,
+            completed: !!historyMap[config.status]
+        }));
+
+        res.json({
+            success: true,
+            data: {
+                orderId: order.orderId,
+                status: order.status,
+                estimatedDeliveryTime: order.estimatedDeliveryTime,
+                deliveryPersonnel: order.deliveryPersonnel,
+                merchant: {
+                    businessName: order.merchant.businessName,
+                    phone: order.merchant.phone
+                },
+                deliveryAddress: order.deliveryAddress,
+                timeline
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch order tracking',
+            details: error.message
+        });
+    }
+};
+

@@ -424,7 +424,7 @@ if (require.main === module) {
     connectDB();
 
     // Initialize Cron Jobs
-    require('./src/cron/subscriptionCron')();
+    require('./src/utils/cronJobs')();
     require('./src/cron/reminderCron')();
 
     server.listen(PORT, () => {

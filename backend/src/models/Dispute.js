@@ -84,7 +84,7 @@ disputeSchema.pre('save', async function (next) {
 });
 
 // Indexes
-disputeSchema.index({ disputeId: 1 }, { unique: true });
+
 disputeSchema.index({ 'raisedBy.user': 1, status: 1 });
 disputeSchema.index({ order: 1 });
 disputeSchema.index({ status: 1, priority: 1 });

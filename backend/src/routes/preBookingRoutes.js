@@ -22,6 +22,16 @@ router.patch('/:id/update-status',
     preBookingController.updatePreBookingStatus
 );
 
+router.patch('/merchant/products/:productId/prebooking',
+    restrictTo('merchant'),
+    preBookingController.updatePreBookingSettings
+);
+
+router.get('/merchant/all',
+    restrictTo('merchant'),
+    preBookingController.getMerchantPreBookings
+);
+
 // Admin routes
 router.get('/admin/all',
     isAdmin,

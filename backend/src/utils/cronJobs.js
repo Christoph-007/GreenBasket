@@ -3,7 +3,7 @@ const Subscription = require('../models/Subscription');
 const Order = require('../models/Order');
 const notificationService = require('../services/notification');
 
-const runSubscriptionCron = () => {
+const runCronJobs = () => {
     // Run daily at 00:00 (Midnight)
     cron.schedule('0 0 * * *', async () => {
         console.log('Running daily subscription renewal check...');
@@ -13,7 +13,6 @@ const runSubscriptionCron = () => {
 
             // Find active subscriptions due for delivery
             // Using $lte to catch any missed runs (e.g. server downtime)
-            // Relies on nextDelivery field being properly set
             const dueSubscriptions = await Subscription.find({
                 status: 'active',
                 nextDelivery: { $lte: new Date() }
@@ -94,31 +93,13 @@ const runSubscriptionCron = () => {
 
                     // Update Subscription nextDelivery
                     let nextDate = new Date(sub.nextDelivery);
-                    // Ensure we don't set it to past if missed multiple? 
-                    // No, just increment ONCE from scheduled date to keep cycle.
-                    // But if we missed a week, should we generate multiple orders?
-                    // MVP: Generate one, move to next cycle.
-
-                    // If nextDelivery was severeley in past, we should move it to FUTURE relative to TODAY to avoid loop?
-                    // Or catch up. Mongoose `find` captures $lte. 
-                    // If we only increment once, and it's still in past, the cron will pick it up again IMMEDIATELY next run (or same run if we looped)?
-                    // No, cron runs once.
-                    // But tomorrow it will pick it up again.
-                    // If date is VERY old, we might generate daily orders until caught up.
-                    // Better: Set nextDelivery to first valid date >= Tomorrow?
-                    // Or just increment logic.
-
                     if (sub.frequency === 'daily') nextDate.setDate(nextDate.getDate() + 1);
                     else if (sub.frequency === 'weekly') nextDate.setDate(nextDate.getDate() + 7);
                     else if (sub.frequency === 'bi-weekly') nextDate.setDate(nextDate.getDate() + 14);
                     else if (sub.frequency === 'monthly') nextDate.setMonth(nextDate.getMonth() + 1);
 
                     // If still in past, fast forward?
-                    const tomorrow = new Date();
-                    tomorrow.setDate(tomorrow.getDate() + 1);
-                    tomorrow.setHours(0, 0, 0, 0);
-
-                    while (nextDate < new Date()) { // if still in past
+                    while (nextDate < new Date()) {
                         if (sub.frequency === 'daily') nextDate.setDate(nextDate.getDate() + 1);
                         else if (sub.frequency === 'weekly') nextDate.setDate(nextDate.getDate() + 7);
                         else if (sub.frequency === 'bi-weekly') nextDate.setDate(nextDate.getDate() + 14);
@@ -140,4 +121,4 @@ const runSubscriptionCron = () => {
     });
 };
 
-module.exports = runSubscriptionCron;
+module.exports = runCronJobs;

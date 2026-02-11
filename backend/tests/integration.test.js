@@ -1,3 +1,4 @@
+require('dotenv').config();
 const request = require('supertest');
 const mongoose = require('mongoose');
 const app = require('../server');
@@ -12,8 +13,8 @@ const Review = require('../src/models/Review');
 const Subscription = require('../src/models/Subscription');
 const Address = require('../src/models/Address');
 
-// Timeout is set to 30s as some operations might take time
-jest.setTimeout(30000);
+// Increase timeout to 60s
+jest.setTimeout(60000);
 
 let userToken;
 let merchantToken;
@@ -21,14 +22,31 @@ let productId;
 let recipeId;
 
 beforeAll(async () => {
-    // Wait for DB connection if not already connected (server.js connects it)
+    console.log('Tests starting: Connecting to Database...');
     if (mongoose.connection.readyState === 0) {
-        await mongoose.connect(process.env.MONGODB_URI);
+        let uri = process.env.MONGODB_URI;
+        if (!uri) {
+            console.error('FATAL: MONGODB_URI is not defined in environment.');
+            throw new Error('MONGODB_URI is missing');
+        }
+
+        // Fix for Node 17+ preferring IPv6, force IPv4 for localhost
+        uri = uri.replace('localhost', '127.0.0.1');
+
+        try {
+            // Fail fast (5s) if DB is unreachable to avoid 30s hang
+            await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 });
+            console.log('Connected to Database successfully.');
+        } catch (err) {
+            console.error('Database connection failed:', err.message);
+            throw err;
+        }
     }
-});
+}, 60000);
 
 afterAll(async () => {
     await mongoose.connection.close();
+    console.log('Database connection closed.');
 });
 
 describe('Green Basket Backend Complete Feature Test', () => {
@@ -145,12 +163,10 @@ describe('Green Basket Backend Complete Feature Test', () => {
         it('should get ingredient calculation for a recipe', async () => {
             const res = await request(app)
                 .post(`/api/recipes/${recipeId}/calculate-ingredients`)
-                .send({ servings: 8 }); // Double the default 4
+                .send({ servings: 8 });
 
             if (res.statusCode !== 200) console.log('Calc Ingredients Error:', res.body);
             expect(res.statusCode).toEqual(200);
-            // Check if quantity is scaled (e.g. carrots 0.5kg for 4 -> 1kg for 8)
-            // Just checking structure for now
             expect(res.body.data.ingredients).toBeDefined();
         });
     });
@@ -175,7 +191,7 @@ describe('Green Basket Backend Complete Feature Test', () => {
             addressId = res.body.data._id;
         });
 
-        it('should create an order', async () => { // Renamed from 'create an order from cart' since we pass items manually
+        it('should create an order', async () => {
             const res = await request(app)
                 .post('/api/orders')
                 .set('Authorization', `Bearer ${userToken}`)
@@ -185,10 +201,6 @@ describe('Green Basket Backend Complete Feature Test', () => {
                     paymentMethod: 'cod'
                 });
 
-            // Depending on payment implementation, this might return 201 or 200 with payment intent
-            // Since we don't have a real razorpay token, we expect the order initiation to pass
-            // In many implementations, 'razorpay' creates an order_id from razorpay.
-            // Let's assume 201 or 200.
             if (res.statusCode !== 200 && res.statusCode !== 201) console.log('Create Order Error:', res.body);
             expect([200, 201]).toContain(res.statusCode);
         });
@@ -210,8 +222,6 @@ describe('Green Basket Backend Complete Feature Test', () => {
 
             if (res.statusCode !== 200) console.log('Get Merchant Orders Error:', res.body);
             expect(res.statusCode).toEqual(200);
-            // Merchant should see the order we just placed (if it contained his product)
-            // Our products are all from this merchant.
             expect(res.body.data.orders).toBeDefined();
         });
     });

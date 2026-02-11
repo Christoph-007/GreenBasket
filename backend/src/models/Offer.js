@@ -144,7 +144,7 @@ const offerSchema = new mongoose.Schema({
 });
 
 // Indexes for performance
-offerSchema.index({ couponCode: 1 }, { sparse: true, unique: true });
+
 offerSchema.index({ merchant: 1, status: 1 });
 offerSchema.index({ startDate: 1, endDate: 1 });
 offerSchema.index({ isFlashSale: 1, status: 1 });

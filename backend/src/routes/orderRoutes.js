@@ -11,6 +11,7 @@ router.get('/my-orders', authenticate, orderController.getMyOrders);
 router.get('/:id', authenticate, orderController.getOrderById);
 router.patch('/:id/cancel', authenticate, orderController.cancelOrder);
 router.get('/:id/track', authenticate, orderController.enhancedTrackOrder);
+router.get('/:orderId/tracking', authenticate, orderController.getOrderTracking);
 router.patch('/:id/location', authenticate, orderController.updateOrderLocation);
 
 // Merchant routes
