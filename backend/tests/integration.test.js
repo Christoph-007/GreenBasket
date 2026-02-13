@@ -13,39 +13,101 @@ const Review = require('../src/models/Review');
 const Subscription = require('../src/models/Subscription');
 const Address = require('../src/models/Address');
 
+const { MongoMemoryServer } = require('mongodb-memory-server');
+
 // Increase timeout to 60s
 jest.setTimeout(60000);
 
+let mongoServer;
 let userToken;
 let merchantToken;
 let productId;
 let recipeId;
 
 beforeAll(async () => {
-    console.log('Tests starting: Connecting to Database...');
-    if (mongoose.connection.readyState === 0) {
-        let uri = process.env.MONGODB_URI;
-        if (!uri) {
-            console.error('FATAL: MONGODB_URI is not defined in environment.');
-            throw new Error('MONGODB_URI is missing');
-        }
+    console.log('Tests starting: Setting up In-Memory Database...');
 
-        // Fix for Node 17+ preferring IPv6, force IPv4 for localhost
-        uri = uri.replace('localhost', '127.0.0.1');
+    // Create new in-memory database
+    mongoServer = await MongoMemoryServer.create();
+    const uri = mongoServer.getUri();
 
-        try {
-            // Fail fast (5s) if DB is unreachable to avoid 30s hang
-            await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 });
-            console.log('Connected to Database successfully.');
-        } catch (err) {
-            console.error('Database connection failed:', err.message);
-            throw err;
-        }
-    }
+    // Connect using the in-memory URI
+    await mongoose.connect(uri);
+    console.log('Connected to In-Memory Database successfully.');
+
+    // Seed Data
+    // 1. Merchant
+    const merchant = await Merchant.create({
+        name: 'Test Merchant',
+        email: 'merchant@example.com',
+        phone: '1234567890',
+        password: 'password123',
+        businessName: 'Green Farm',
+        merchantType: 'organic-farmer',
+        verificationStatus: 'approved',
+        isStoreOpen: true,
+        location: { type: 'Point', coordinates: [77.5946, 12.9716] },
+        address: { street: '123 Farm Rd', city: 'City', state: 'State', pincode: '123456' }
+    });
+
+    // 2. User
+    await User.create({
+        name: 'Test User',
+        email: 'user@example.com',
+        phone: '9876543210',
+        password: 'password123',
+        isEmailVerified: true
+    });
+
+    // 3. Category
+    const category = await Category.create({
+        name: 'Vegetables',
+        description: 'Fresh Vegetables',
+        image: 'http://example.com/veg.jpg'
+    });
+
+    // 4. Product
+    await Product.create({
+        name: 'Organic Tomato',
+        description: 'Fresh organic tomatoes',
+        merchant: merchant._id,
+        category: category._id,
+        price: 40,
+        stock: 100,
+        unit: 'kg',
+        images: [{ url: 'http://example.com/tomato.jpg', publicId: 'tomato_123' }],
+        primaryImage: 'http://example.com/tomato.jpg'
+    });
+
+    // 5. Recipe
+    await Recipe.create({
+        name: 'Tomato Soup',
+        description: 'Simple tomato soup',
+        image: 'http://example.com/soup.jpg',
+        servings: 4,
+        prepTime: 10,
+        cookTime: 20,
+        difficulty: 'easy',
+        ingredients: [{
+            name: 'Tomato',
+            quantity: 500,
+            unit: 'g',
+            isOptional: false
+        }],
+        instructions: [{ stepNumber: 1, instruction: 'Boil tomatoes' }]
+    });
+
+    console.log('Database seeded successfully.');
 }, 60000);
 
 afterAll(async () => {
-    await mongoose.connection.close();
+    if (mongoose.connection.readyState !== 0) {
+        await mongoose.connection.dropDatabase();
+        await mongoose.connection.close();
+    }
+    if (mongoServer) {
+        await mongoServer.stop();
+    }
     console.log('Database connection closed.');
 });
 

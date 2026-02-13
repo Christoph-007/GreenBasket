@@ -1,3 +1,4 @@
+require('dotenv').config();
 const mongoose = require('mongoose');
 const notificationService = require('../src/services/notificationService'); // Aliases to notification.js
 const Notification = require('../src/models/Notification');

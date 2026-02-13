@@ -14,7 +14,7 @@ exports.uploadImage = async (req, res) => {
         const { category } = req.body;
 
         if (!category) {
-            await cloudinary.uploader.destroy(req.file.public_id);
+            if (req.file.filename) await cloudinary.uploader.destroy(req.file.filename);
             return res.status(400).json({
                 success: false,
                 error: 'Category is required'
@@ -28,13 +28,12 @@ exports.uploadImage = async (req, res) => {
             fileType: 'image',
             category,
             originalName: req.file.originalname,
-            cloudinaryPublicId: req.file.public_id,
-            cloudinaryUrl: req.file.url,
-            secureUrl: req.file.secure_url,
-            format: req.file.format,
-            size: req.file.bytes,
-            width: req.file.width,
-            height: req.file.height
+            cloudinaryPublicId: req.file.filename,
+            cloudinaryUrl: req.file.path,
+            secureUrl: req.file.path,
+            format: req.file.mimetype ? req.file.mimetype.split('/')[1] : 'unknown',
+            size: req.file.size,
+            // width and height are not available on req.file in v4 without extra config/api call
         });
 
         res.status(201).json({
@@ -52,8 +51,8 @@ exports.uploadImage = async (req, res) => {
             }
         });
     } catch (error) {
-        if (req.file && req.file.public_id) {
-            await cloudinary.uploader.destroy(req.file.public_id);
+        if (req.file && req.file.filename) {
+            await cloudinary.uploader.destroy(req.file.filename);
         }
 
         res.status(500).json({
@@ -75,7 +74,7 @@ exports.uploadMultipleImages = async (req, res) => {
 
         if (req.files.length > 5) {
             for (const file of req.files) {
-                await cloudinary.uploader.destroy(file.public_id);
+                await cloudinary.uploader.destroy(file.filename);
             }
             return res.status(400).json({
                 success: false,
@@ -88,7 +87,7 @@ exports.uploadMultipleImages = async (req, res) => {
 
         if (!category) {
             for (const file of req.files) {
-                await cloudinary.uploader.destroy(file.public_id);
+                await cloudinary.uploader.destroy(file.filename);
             }
             return res.status(400).json({
                 success: false,
@@ -104,13 +103,11 @@ exports.uploadMultipleImages = async (req, res) => {
                 fileType: 'image',
                 category,
                 originalName: file.originalname,
-                cloudinaryPublicId: file.public_id,
-                cloudinaryUrl: file.url,
-                secureUrl: file.secure_url,
-                format: file.format,
-                size: file.bytes,
-                width: file.width,
-                height: file.height
+                cloudinaryPublicId: file.filename,
+                cloudinaryUrl: file.path,
+                secureUrl: file.path,
+                format: file.mimetype ? file.mimetype.split('/')[1] : 'unknown',
+                size: file.size,
             })
         );
 
@@ -134,7 +131,7 @@ exports.uploadMultipleImages = async (req, res) => {
     } catch (error) {
         if (req.files) {
             for (const file of req.files) {
-                await cloudinary.uploader.destroy(file.public_id);
+                if (file.filename) await cloudinary.uploader.destroy(file.filename);
             }
         }
 
@@ -158,7 +155,7 @@ exports.uploadDocument = async (req, res) => {
         const { documentType } = req.body;
 
         if (!documentType) {
-            await cloudinary.uploader.destroy(req.file.public_id, { resource_type: 'raw' });
+            if (req.file.filename) await cloudinary.uploader.destroy(req.file.filename, { resource_type: 'raw' });
             return res.status(400).json({
                 success: false,
                 error: 'Document type is required'
@@ -171,11 +168,11 @@ exports.uploadDocument = async (req, res) => {
             fileType: 'document',
             category: 'document',
             originalName: req.file.originalname,
-            cloudinaryPublicId: req.file.public_id,
-            cloudinaryUrl: req.file.url,
-            secureUrl: req.file.secure_url,
-            format: req.file.format,
-            size: req.file.bytes,
+            cloudinaryPublicId: req.file.filename,
+            cloudinaryUrl: req.file.path,
+            secureUrl: req.file.path,
+            format: req.file.mimetype ? req.file.mimetype.split('/')[1] : 'pdf',
+            size: req.file.size,
             metadata: {
                 documentType
             }
@@ -194,8 +191,8 @@ exports.uploadDocument = async (req, res) => {
             }
         });
     } catch (error) {
-        if (req.file && req.file.public_id) {
-            await cloudinary.uploader.destroy(req.file.public_id, { resource_type: 'raw' });
+        if (req.file && req.file.filename) {
+            await cloudinary.uploader.destroy(req.file.filename, { resource_type: 'raw' });
         }
 
         res.status(500).json({

@@ -3,6 +3,7 @@ const Merchant = require('../models/Merchant');
 const Admin = require('../models/Admin');
 const generateToken = require('../utils/generateToken');
 const { sendEmail } = require('../services/emailService');
+const { addContactToSendGrid } = require('../services/sendgridContactService');
 const jwt = require('jsonwebtoken');
 
 // User Signup
@@ -45,6 +46,16 @@ exports.userSignup = async (req, res) => {
                     verificationLink: `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`
                 }
             });
+
+            // Add to SendGrid Contacts (Non-blocking / specific list)
+            // We run this asynchronously so it doesn't delay the response too much.
+            addContactToSendGrid({
+                name: user.name,
+                email: user.email,
+                firstName: user.firstName, // If available in future models
+                lastName: user.lastName
+            }).catch(console.error);
+
         } catch (emailError) {
             console.error('Email sending failed:', emailError);
         }

@@ -1,13 +1,11 @@
-const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail');
 
-// Create transporter
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_APP_PASSWORD // Use App Password
-  }
-});
+// Set API Key
+if (process.env.SENDGRID_API_KEY) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+} else {
+  console.warn('⚠️ SendGrid API Key missing in environment variables');
+}
 
 // Email templates
 const templates = {
@@ -66,26 +64,63 @@ const templates = {
         </div>
       </body>
     </html>
+  `,
+
+  passwordReset: (data) => `
+    <html>
+      <body style="font-family: Arial, sans-serif;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #4CAF50;">Reset Password</h2>
+          <p>Hi ${data.name},</p>
+          <p>You requested a password reset. Click the button below to reset your password:</p>
+          <a href="${data.resetLink}" 
+             style="display: inline-block; padding: 12px 24px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 4px; margin: 20px 0;">
+            Reset Password
+          </a>
+          <p>This link will expire in 1 hour.</p>
+          <p>If you didn't request this, please ignore this email.</p>
+        </div>
+      </body>
+    </html>
   `
 };
 
 // Send email function
 const sendEmail = async ({ to, subject, template, data }) => {
   try {
-    const htmlContent = templates[template] ? templates[template](data) : data.html;
+    const htmlContent = templates[template] ? templates[template](data) : (data.html || JSON.stringify(data));
 
-    const mailOptions = {
-      from: `"Green Basket" <${process.env.EMAIL_USER}>`,
+    // Determine sender address
+    // Priority: EMAIL_FROM in env -> EMAIL_USER in env -> fallback
+    let from = process.env.EMAIL_FROM;
+    if (!from || from === 'noreply@greenbasket.com') {
+      // If EMAIL_FROM is generic/default, try using the authenticated user email if available
+      // This helps when using SendGrid Single Sender Verification with a personal email
+      if (process.env.EMAIL_USER && process.env.EMAIL_USER.includes('@')) {
+        from = process.env.EMAIL_USER;
+      }
+    }
+
+    const msg = {
       to,
+      from: from || 'noreply@greenbasket.com',
       subject,
       html: htmlContent
     };
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log('Email sent:', info.messageId);
-    return { success: true, messageId: info.messageId };
+    console.log(`📧 Sending email to ${to} via SendGrid...`);
+    const response = await sgMail.send(msg);
+
+    console.log('✅ Email sent successfully via SendGrid');
+    return {
+      success: true,
+      messageId: response[0].headers['x-message-id']
+    };
   } catch (error) {
-    console.error('Email error:', error);
+    console.error('❌ SendGrid Email Error:', error);
+    if (error.response) {
+      console.error('   Details:', error.response.body);
+    }
     throw error;
   }
 };
