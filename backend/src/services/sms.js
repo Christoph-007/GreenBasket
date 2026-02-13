@@ -20,10 +20,25 @@ if (accountSid && accountSid.startsWith('AC') && authToken) {
 
 const sendSMS = async ({ to, message }) => {
     try {
+        // Clean the number: remove spaces, dashes, parentheses
+        let cleanNumber = to.toString().replace(/[\s\-()]/g, '');
+
+        // Intelligent formatting for Indian numbers
+        if (cleanNumber.length === 10) {
+            // Case: 9876543210 -> +919876543210
+            cleanNumber = `+91${cleanNumber}`;
+        } else if (cleanNumber.length === 12 && cleanNumber.startsWith('91')) {
+            // Case: 919876543210 -> +919876543210
+            cleanNumber = `+${cleanNumber}`;
+        } else if (!cleanNumber.startsWith('+')) {
+            // Fallback: If no + prefix, assume it needs +91
+            cleanNumber = `+91${cleanNumber}`;
+        }
+
         await client.messages.create({
             body: message,
             from: process.env.TWILIO_PHONE_NUMBER || '+1234567890',
-            to: `+91${to}`
+            to: cleanNumber
         });
 
         return { success: true };
