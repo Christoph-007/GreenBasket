@@ -1,7 +1,7 @@
 # Complete API List - GreenBasket Backend
 
-**Total APIs: 147**  
-**Total Features: 10**
+**Total APIs: 221**  
+**Total Features: 31**
 
 ---
 
@@ -62,7 +62,7 @@
 
 ---
 
-## 5. Orders (6 APIs)
+## 5. Orders (7 APIs)
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
@@ -70,6 +70,7 @@
 | GET | `/api/orders/my-orders` | Get user orders | User |
 | GET | `/api/orders/:id` | Get order details | User |
 | PATCH | `/api/orders/:id/cancel` | Cancel order | User |
+| PATCH | `/api/orders/:id/location` | Update order location | User/Merchant |
 | GET | `/api/orders/merchant/orders` | Get merchant orders | Merchant |
 | PATCH | `/api/orders/merchant/:id/status` | Update order status | Merchant |
 
@@ -227,7 +228,7 @@
 
 ---
 
-## 18. Referral System ⭐ NEW (5 APIs)
+## 18. Referral System (5 APIs)
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
@@ -237,16 +238,9 @@
 | GET | `/api/referral/validate/:code` | Validate code | Public |
 | POST | `/api/referral/process-reward` | Process reward | Admin |
 
-**Features:**
-- Unique code generation (e.g., GBJOHN1234)
-- Two-tier rewards: ₹50 for new user, ₹100 for referrer
-- Automatic wallet credit
-- First-order reward triggering
-- Comprehensive stats tracking
-
 ---
 
-## 19. Offers & Promotions ⭐ NEW (10 APIs)
+## 19. Offers & Promotions (10 APIs)
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
@@ -261,23 +255,9 @@
 | GET | `/api/offers/flash-sales` | Get flash sales | Public |
 | GET | `/api/offers/admin/all` | Get all offers | Admin |
 
-**Offer Types:**
-- Percentage discounts
-- Flat amount discounts
-- BOGO (Buy One Get One)
-- Free delivery
-- Bundle deals
-
-**Features:**
-- Flash sales with countdown
-- Usage limits (per user & total)
-- Eligibility checking
-- Comprehensive analytics
-- Auto-expiration
-
 ---
 
-## 20. Merchant Analytics ⭐ NEW (6 APIs)
+## 20. Merchant Analytics (6 APIs)
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
@@ -288,17 +268,9 @@
 | GET | `/api/merchants/analytics/forecast` | Revenue forecast | Merchant |
 | GET | `/api/merchants/analytics/reviews` | Review analytics | Merchant |
 
-**Analytics Include:**
-- Revenue trends & growth rates
-- Best/worst performing products
-- Customer retention metrics
-- Inventory alerts & recommendations
-- AI-powered revenue predictions
-- Rating distributions
-
 ---
 
-## 21. Delivery Zone Management ⭐ NEW (7 APIs)
+## 21. Delivery Zone Management (7 APIs)
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
@@ -310,14 +282,124 @@
 | POST | `/api/merchants/zones/check-delivery` | Check delivery | Public |
 | POST | `/api/merchants/zones/nearby` | Get nearby merchants | Public |
 
-**Features:**
-- GeoJSON location storage
-- MongoDB 2dsphere geospatial queries
-- Haversine distance calculation
-- Multiple zones per merchant
-- Zone-based pricing
-- Free delivery thresholds
-- Nearby merchant discovery
+---
+
+## 22. Membership (6 APIs)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/api/membership/plans` | Get membership plans | Public |
+| GET | `/api/membership` | Get my membership | User |
+| POST | `/api/membership/subscribe` | Subscribe to membership | User |
+| POST | `/api/membership/cancel` | Cancel membership | User |
+| GET | `/api/membership/premium-products` | Get premium products | User |
+| GET | `/api/membership/check-benefit` | Check benefit eligibility | User |
+
+---
+
+## 23. Pre-Booking (6 APIs)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/prebooking` | Create pre-booking | User |
+| GET | `/api/prebooking/my-prebookings` | Get user pre-bookings | User |
+| DELETE | `/api/prebooking/:id` | Cancel pre-booking | User |
+| POST | `/api/prebooking/:id/convert-to-order` | Convert to order | User |
+| PATCH | `/api/prebooking/products/:id/mark-available` | Mark product available | Merchant |
+| GET | `/api/prebooking/admin/all` | Get all pre-bookings | Admin |
+
+---
+
+## 24. Document Verification (6 APIs)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/documents/upload` | Upload document | Merchant |
+| GET | `/api/documents` | Get merchant documents | Merchant |
+| DELETE | `/api/documents/:documentId` | Delete document | Merchant |
+| GET | `/api/documents/admin/pending` | Get pending documents | Admin |
+| PUT | `/api/documents/admin/:merchantId/:documentId/verify` | Verify document | Admin |
+| GET | `/api/documents/admin/expiring-soon` | Get expiring documents | Admin |
+
+---
+
+## 25. Disputes (8 APIs)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/disputes` | Raise dispute | User |
+| GET | `/api/disputes/my-disputes` | Get my disputes | User |
+| GET | `/api/disputes/:id` | Get dispute by ID | User/Admin |
+| POST | `/api/disputes/:id/message` | Add message to dispute | User/Admin |
+| PATCH | `/api/disputes/:id/escalate` | Escalate dispute | User |
+| GET | `/api/disputes/admin/all` | Get all disputes | Admin |
+| PUT | `/api/disputes/admin/:id/resolve` | Resolve dispute | Admin |
+| PATCH | `/api/disputes/admin/:id/status` | Update dispute status | Admin |
+
+---
+
+## 26. Financial Management (10 APIs)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/api/financial/merchants/earnings` | Get merchant earnings | Merchant |
+| GET | `/api/financial/merchants/payouts` | Get merchant payouts | Merchant |
+| GET | `/api/financial/payouts/:id` | Get payout by ID | Merchant/Admin |
+| GET | `/api/financial/admin/payouts` | Get all payouts | Admin |
+| POST | `/api/financial/admin/payouts/generate` | Generate payouts | Admin |
+| POST | `/api/financial/admin/payouts/:id/process` | Process payout | Admin |
+| PATCH | `/api/financial/admin/payouts/:id/hold` | Hold/Release payout | Admin |
+| GET | `/api/financial/admin/reports/financial` | Get financial reports | Admin |
+| GET | `/api/financial/admin/reports/gst` | Get GST report | Admin |
+| PUT | `/api/financial/admin/settings/commission` | Update commission settings | Admin |
+
+---
+
+## 27. Bulk Operations (4 APIs)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/bulk/products/bulk-upload` | Bulk upload products | Merchant |
+| PUT | `/api/bulk/products/bulk-update-price` | Bulk update prices | Merchant |
+| PUT | `/api/bulk/products/bulk-update-stock` | Bulk update stock | Merchant |
+| GET | `/api/bulk/products/export` | Export products | Merchant |
+
+---
+
+## 28. Advanced Search (3 APIs)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/api/search/products` | Advanced product search | Public |
+| GET | `/api/search/suggestions` | Search suggestions | Public |
+| GET | `/api/search/trending` | Trending products | Public |
+
+---
+
+## 29. Returns & Exchanges (6 APIs)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/returns` | Request return | User |
+| GET | `/api/returns/my-returns` | Get my returns | User |
+| GET | `/api/returns/:id` | Get return by ID | User/Admin |
+| DELETE | `/api/returns/:id` | Cancel return request | User |
+| GET | `/api/returns/admin/all` | Get all returns | Admin |
+| PUT | `/api/returns/admin/:id/process` | Process return | Admin |
+
+---
+
+## 30. Gift Cards (7 APIs)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/api/gift-cards/balance/:code` | Check balance | Public |
+| POST | `/api/gift-cards/validate` | Validate gift card | User |
+| POST | `/api/gift-cards/redeem` | Redeem gift card | User |
+| GET | `/api/gift-cards/my-cards` | Get my gift cards | User |
+| POST | `/api/gift-cards/admin/generate` | Generate gift card | Admin |
+| GET | `/api/gift-cards/admin/all` | Get all gift cards | Admin |
+| PATCH | `/api/gift-cards/admin/:id/cancel` | Cancel gift card | Admin |
 
 ---
 
@@ -329,7 +411,7 @@
 | 2 | Products | 8 | ✅ |
 | 3 | Categories | 5 | ✅ |
 | 4 | Cart | 6 | ✅ |
-| 5 | Orders | 6 | ✅ |
+| 5 | Orders | 7 | ✅ |
 | 6 | Recipes | 7 | ✅ |
 | 7 | Reviews | 3 | ✅ |
 | 8 | Subscriptions | 3 | ✅ |
@@ -342,22 +424,67 @@
 | 15 | Wishlist | 5 | ✅ |
 | 16 | Wallet | 8 | ✅ |
 | 17 | Loyalty | 4 | ✅ |
-| 18 | **Referral** | **5** | **✅ NEW** |
-| 19 | **Offers** | **10** | **✅ NEW** |
-| 20 | **Analytics** | **6** | **✅ NEW** |
-| 21 | **Delivery Zones** | **7** | **✅ NEW** |
-| **TOTAL** | **21 Features** | **147 APIs** | **✅** |
+| 18 | Referral | 5 | ✅ |
+| 19 | Offers | 10 | ✅ |
+| 20 | Merchant Analytics | 6 | ✅ |
+| 21 | Delivery Zones | 7 | ✅ |
+| 22 | **Membership** | **6** | **✅ NEW** |
+| 23 | **Pre-Booking** | **6** | **✅ NEW** |
+| 24 | **Document Verification** | **6** | **✅ NEW** |
+| 25 | **Disputes** | **8** | **✅ NEW** |
+| 26 | **Financial** | **10** | **✅ NEW** |
+| 27 | **Bulk Operations** | **4** | **✅ NEW** |
+| 28 | **Advanced Search** | **3** | **✅ NEW** |
+| 29 | **Returns** | **6** | **✅ NEW** |
+| 30 | **Gift Cards** | **7** | **✅ NEW** |
+| 31 | **Delivery Agent System** | **17** | **✅ NEW** |
+| **TOTAL** | **31 Features** | **221 APIs** | **✅** |
+
+---
+
+## 31. Delivery Agent System (17 APIs)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/agents/register` | Register new delivery agent | Public |
+| POST | `/api/agents/login` | Agent login | Public |
+| GET | `/api/agents/me` | Get agent profile | Agent |
+| PUT | `/api/agents/me` | Update agent profile | Agent |
+| PUT | `/api/agents/me/status` | Update status (available/offline) | Agent |
+| POST | `/api/agents/me/location` | Update GPS location | Agent |
+| GET | `/api/agents/assignments/current` | Get current active assignment | Agent |
+| GET | `/api/agents/assignments` | Get assignment history | Agent |
+| GET | `/api/agents/assignments/:id` | Get assignment details | Agent |
+| PUT | `/api/agents/assignments/:id/status` | Update delivery status | Agent |
+| GET | `/api/agents/earnings` | Get earnings summary | Agent |
+| GET | `/api/admin/agents` | List all delivery agents | Admin |
+| GET | `/api/admin/agents/analytics` | Get delivery analytics | Admin |
+| GET | `/api/admin/agents/:id` | Get agent details | Admin |
+| GET | `/api/admin/agents/:id/assignments` | Get agent assignment history | Admin |
+| PATCH | `/api/admin/agents/:id/verify` | Verify/approve agent | Admin |
+| PATCH | `/api/admin/agents/:id/toggle-active` | Activate/deactivate agent | Admin |
+| POST | `/api/admin/orders/:orderId/assign/:agentId` | Manually assign order to agent | Admin |
+| GET | `/api/admin/orders/unassigned` | Get unassigned orders | Admin |
+| GET | `/api/admin/assignments` | Get all delivery assignments | Admin |
+
+**Features:**
+- Separate agent authentication (role: 'agent')
+- Auto-assignment based on proximity (Haversine formula)
+- Real-time status tracking
+- Earnings calculation
+- Admin oversight and manual assignment
+- Graceful fallback for failed auto-assignments
 
 ---
 
 ## Quick Start
 
 ```bash
-# Start the server
-npm start
+# Start server
+npm run dev
 
 # Test all endpoints
-./test-features-7-10.sh
+npm test
 
 # View API documentation
 curl http://localhost:6000/api
@@ -373,6 +500,6 @@ curl http://localhost:6000/api
 
 ---
 
-**Last Updated:** February 10, 2026  
-**Version:** 1.0.0  
+**Last Updated:** February 17, 2026  
+**Version:** 1.2.0  
 **Status:** Production Ready ✅

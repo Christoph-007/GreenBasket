@@ -65,8 +65,29 @@ exports.getAddresses = async (req, res) => {
     }
 };
 
+const geocodingService = require('../services/geocodingService');
+
 exports.addAddress = async (req, res) => {
     try {
+        const { location, ...addressData } = req.body;
+
+        // Auto-geocode if location is missing
+        if (!location || !location.coordinates || location.coordinates.length !== 2) {
+            const addressString = geocodingService.constructAddressString(req.body);
+            try {
+                const coords = await geocodingService.getCoordinates(addressString);
+                if (coords) {
+                    req.body.location = {
+                        type: 'Point',
+                        coordinates: [coords.lng, coords.lat]
+                    };
+                }
+            } catch (error) {
+                console.warn('Geocoding failed for new address:', error.message);
+                // Continue without coordinates
+            }
+        }
+
         // If setting as default, unset other defaults
         if (req.body.isDefault) {
             await Address.updateMany(
@@ -97,6 +118,7 @@ exports.addAddress = async (req, res) => {
 exports.updateAddress = async (req, res) => {
     try {
         const { id } = req.params;
+        const { location } = req.body;
 
         // Check ownership
         const address = await Address.findOne({ _id: id, user: req.user.id });
@@ -105,6 +127,30 @@ exports.updateAddress = async (req, res) => {
                 success: false,
                 message: 'Address not found'
             });
+        }
+
+        // Auto-geocode if address changed and location missing
+        if (!location || !location.coordinates) {
+            // Check if address fields changed
+            const addressFields = ['addressLine1', 'addressLine2', 'city', 'state', 'pincode'];
+            const hasChanged = addressFields.some(field => req.body[field] && req.body[field] !== address[field]);
+
+            if (hasChanged) {
+                const combinedAddress = { ...address.toObject(), ...req.body };
+                const addressString = geocodingService.constructAddressString(combinedAddress);
+
+                try {
+                    const coords = await geocodingService.getCoordinates(addressString);
+                    if (coords) {
+                        req.body.location = {
+                            type: 'Point',
+                            coordinates: [coords.lng, coords.lat]
+                        };
+                    }
+                } catch (error) {
+                    console.warn('Geocoding failed for updated address:', error.message);
+                }
+            }
         }
 
         if (req.body.isDefault) {

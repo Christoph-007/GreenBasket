@@ -269,6 +269,13 @@ exports.searchProducts = async (req, res) => {
     try {
         const { q } = req.query;
 
+        if (!q) {
+            return res.json({
+                success: true,
+                data: { products: [] }
+            });
+        }
+
         const products = await Product.find({
             $text: { $search: q },
             status: 'active'

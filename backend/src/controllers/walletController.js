@@ -1,6 +1,6 @@
 const Wallet = require('../models/Wallet');
 const Order = require('../models/Order');
-const crypto = require('crypto');
+const paymentService = require('../services/paymentService');
 
 exports.getWallet = async (req, res) => {
     try {
@@ -158,27 +158,25 @@ exports.addMoney = async (req, res) => {
             });
         }
 
-        const { razorpay } = require('../config/razorpay');
-
-        // Create Razorpay order
-        const razorpayOrder = await razorpay.orders.create({
-            amount: amount * 100, // Convert to paise
-            currency: 'INR',
-            receipt: `wallet_topup_${req.user._id}_${Date.now()}`,
-            notes: {
-                userId: req.user._id.toString(),
-                type: 'wallet_topup'
+        // Create Stripe Payment Intent
+        const paymentIntent = await paymentService.createPaymentIntent(
+            amount,
+            `wallet_topup_${req.user._id}_${Date.now()}`,
+            req.user._id.toString(),
+            {
+                type: 'wallet_topup',
+                description: 'Wallet Topup'
             }
-        });
+        );
 
         res.json({
             success: true,
             message: 'Wallet topup initiated',
             data: {
-                razorpayOrderId: razorpayOrder.id,
-                amount: razorpayOrder.amount,
-                currency: razorpayOrder.currency,
-                keyId: process.env.RAZORPAY_KEY_ID
+                paymentIntentId: paymentIntent.id,
+                clientSecret: paymentIntent.client_secret,
+                amount: amount,
+                currency: 'INR'
             }
         });
     } catch (error) {
@@ -193,33 +191,28 @@ exports.addMoney = async (req, res) => {
 exports.verifyTopup = async (req, res) => {
     try {
         const {
-            razorpay_order_id,
-            razorpay_payment_id,
-            razorpay_signature,
+            paymentIntentId,
             amount
         } = req.body;
 
-        if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !amount) {
+        if (!paymentIntentId || !amount) {
             return res.status(400).json({
                 success: false,
-                error: 'All payment details are required'
+                error: 'paymentIntentId and amount are required'
             });
         }
 
-        // Verify signature
-        const generatedSignature = crypto
-            .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-            .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-            .digest('hex');
+        // Verify status with Stripe
+        const paymentIntent = await paymentService.getPaymentIntent(paymentIntentId);
 
-        if (generatedSignature !== razorpay_signature) {
+        if (paymentIntent.status !== 'succeeded') {
             return res.status(400).json({
                 success: false,
-                error: 'Invalid payment signature'
+                error: 'Payment not successful'
             });
         }
 
-        // Get or create wallet
+        // Check if transaction already processed (idempotency)
         let wallet = await Wallet.findOne({ user: req.user._id });
 
         if (!wallet) {
@@ -227,6 +220,15 @@ exports.verifyTopup = async (req, res) => {
                 user: req.user._id,
                 balance: 0,
                 transactions: []
+            });
+        }
+
+        const alreadyProcessed = wallet.transactions.some(t => t.paymentId === paymentIntentId || t.referenceId === paymentIntentId);
+        if (alreadyProcessed) {
+            return res.json({
+                success: true,
+                message: 'Transaction already processed',
+                data: { newBalance: wallet.balance }
             });
         }
 
@@ -247,9 +249,9 @@ exports.verifyTopup = async (req, res) => {
             type: 'credit',
             amount,
             source: 'topup',
-            description: `Wallet topup via Razorpay`,
-            paymentId: razorpay_payment_id,
-            referenceId: razorpay_order_id,
+            description: `Wallet topup via Stripe`,
+            paymentId: paymentIntentId,
+            referenceId: paymentIntentId,
             balanceBefore,
             balanceAfter: wallet.balance,
             status: 'completed'

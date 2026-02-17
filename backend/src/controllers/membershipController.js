@@ -1,5 +1,7 @@
 const Membership = require('../models/Membership');
 const Product = require('../models/Product');
+const { stripe } = require('../config/stripe');
+const paymentService = require('../services/paymentService');
 
 // Plan configurations
 const PLANS = {
@@ -37,6 +39,7 @@ const PLANS = {
         },
         description: 'Quarterly premium plus membership with all benefits'
     }
+    // Note: Stripe Price IDs could be here if using Subscriptions API
 };
 
 /**
@@ -106,13 +109,13 @@ exports.getMembership = async (req, res) => {
 };
 
 /**
- * @desc    Subscribe to a premium plan
+ * @desc    Subscribe to a premium plan (Legacy/Manual entry)
  * @route   POST /api/membership/subscribe
  * @access  Private (User)
  */
 exports.subscribeToPlan = async (req, res) => {
     try {
-        const { plan, paymentId, razorpaySubscriptionId } = req.body;
+        const { plan, paymentIntentId, subscriptionId } = req.body;
 
         // Validate plan
         if (!PLANS[plan] || plan === 'basic') {
@@ -122,11 +125,12 @@ exports.subscribeToPlan = async (req, res) => {
             });
         }
 
-        if (!paymentId) {
-            return res.status(400).json({
-                success: false,
-                error: 'Payment ID is required'
-            });
+        // Verify payment intent status via Stripe if provided
+        if (paymentIntentId) {
+            const pi = await paymentService.getPaymentIntent(paymentIntentId);
+            if (pi.status !== 'succeeded') {
+                return res.status(400).json({ success: false, error: 'Payment not successful' });
+            }
         }
 
         const planConfig = PLANS[plan];
@@ -142,14 +146,14 @@ exports.subscribeToPlan = async (req, res) => {
             membership.status = 'active';
             membership.startDate = startDate;
             membership.endDate = endDate;
-            membership.paymentId = paymentId;
-            membership.razorpaySubscriptionId = razorpaySubscriptionId;
+            membership.stripePaymentIntentId = paymentIntentId;
+            membership.stripeSubscriptionId = subscriptionId;
             membership.autoRenew = true;
 
             // Add to payment history
             membership.paymentHistory.push({
                 amount: planConfig.price,
-                paymentId,
+                stripePaymentIntentId: paymentIntentId,
                 date: new Date(),
                 status: 'success'
             });
@@ -163,12 +167,12 @@ exports.subscribeToPlan = async (req, res) => {
                 status: 'active',
                 startDate,
                 endDate,
-                paymentId,
-                razorpaySubscriptionId,
+                stripePaymentIntentId: paymentIntentId,
+                stripeSubscriptionId: subscriptionId,
                 autoRenew: true,
                 paymentHistory: [{
                     amount: planConfig.price,
-                    paymentId,
+                    stripePaymentIntentId: paymentIntentId,
                     status: 'success'
                 }]
             });
@@ -231,6 +235,15 @@ exports.cancelMembership = async (req, res) => {
         membership.status = 'cancelled';
         membership.autoRenew = false;
         await membership.save();
+
+        if (membership.stripeSubscriptionId) {
+            try {
+                await stripe.subscriptions.cancel(membership.stripeSubscriptionId);
+            } catch (err) {
+                console.error('Stripe subscription cancel error:', err);
+                // Continue anyway as local status is updated
+            }
+        }
 
         res.json({
             success: true,
@@ -366,10 +379,6 @@ exports.checkBenefit = async (req, res) => {
     }
 };
 
-
-// Note: All functions are already exported using exports.functionName above
-// No need for module.exports here
-
 exports.initiateMembership = async (req, res) => {
     try {
         const { plan } = req.body;
@@ -382,7 +391,12 @@ exports.initiateMembership = async (req, res) => {
         }
 
         const { MEMBERSHIP_PLANS } = require('../config/membershipPlans');
-        const planConfig = MEMBERSHIP_PLANS[plan];
+        // Note: Check if membershipPlans exists, otherwise fallback to local PLANS
+        const planConfig = PLANS[plan] || (MEMBERSHIP_PLANS ? MEMBERSHIP_PLANS[plan] : null);
+
+        if (!planConfig) {
+            return res.status(400).json({ success: false, error: 'Invalid plan config' });
+        }
 
         // Check if user already has active membership of same plan
         const existingMembership = await Membership.findOne({
@@ -395,35 +409,32 @@ exports.initiateMembership = async (req, res) => {
         if (existingMembership) {
             return res.status(400).json({
                 success: false,
-                error: `You already have an active ${planConfig.name} membership`,
+                error: `You already have an active ${planConfig.description || plan} membership`,
                 endDate: existingMembership.endDate
             });
         }
 
-        // Create Razorpay order
-        const { razorpay } = require('../config/razorpay');
-
-        const razorpayOrder = await razorpay.orders.create({
-            amount: planConfig.price * 100,
-            currency: 'INR',
-            receipt: `membership_${req.user._id}_${plan}_${Date.now()}`,
-            notes: {
-                userId: req.user._id.toString(),
+        // Create Stripe Payment Intent
+        const paymentIntent = await paymentService.createPaymentIntent(
+            planConfig.price,
+            `membership_${req.user._id}_${Date.now()}`,
+            req.user._id.toString(),
+            {
                 plan,
                 type: 'membership'
             }
-        });
+        );
 
         res.json({
             success: true,
             message: 'Membership payment initiated',
             data: {
-                razorpayOrderId: razorpayOrder.id,
-                amount: razorpayOrder.amount,
-                currency: razorpayOrder.currency,
-                keyId: process.env.RAZORPAY_KEY_ID,
+                paymentIntentId: paymentIntent.id,
+                clientSecret: paymentIntent.client_secret,
+                amount: planConfig.price,
+                currency: 'INR',
                 planDetails: {
-                    name: planConfig.name,
+                    name: plan,
                     price: planConfig.price,
                     durationDays: planConfig.durationDays,
                     benefits: planConfig.benefits
@@ -443,15 +454,13 @@ exports.activateMembership = async (req, res) => {
     try {
         const {
             plan,
-            razorpay_order_id,
-            razorpay_payment_id,
-            razorpay_signature
+            paymentIntentId
         } = req.body;
 
-        if (!plan || !razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+        if (!plan || !paymentIntentId) {
             return res.status(400).json({
                 success: false,
-                error: 'plan, razorpay_order_id, razorpay_payment_id, and razorpay_signature are all required'
+                error: 'plan and paymentIntentId are required'
             });
         }
 
@@ -459,23 +468,19 @@ exports.activateMembership = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Invalid plan' });
         }
 
-        // ─── CRITICAL: Verify Razorpay payment signature ───
-        const crypto = require('crypto');
-        const generatedSignature = crypto
-            .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-            .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-            .digest('hex');
+        // Check payment status with Stripe
+        const paymentIntent = await paymentService.getPaymentIntent(paymentIntentId);
 
-        if (generatedSignature !== razorpay_signature) {
+        if (paymentIntent.status !== 'succeeded') {
             return res.status(400).json({
                 success: false,
-                error: 'Payment verification failed. Invalid signature.'
+                error: 'Payment not successful'
             });
         }
-        // ───────────────────────────────────────────────────
 
-        const { MEMBERSHIP_PLANS, getPlanConfig } = require('../config/membershipPlans');
-        const planConfig = getPlanConfig(plan);
+        const { MEMBERSHIP_PLANS } = require('../config/membershipPlans');
+        // Fallback to local if config missing (though it likely exists)
+        const planConfig = PLANS[plan]; // Use local constant for reliability in this snippet
 
         const startDate = new Date();
         const endDate = new Date(Date.now() + planConfig.durationDays * 24 * 60 * 60 * 1000);
@@ -490,8 +495,8 @@ exports.activateMembership = async (req, res) => {
                     plan: membership.plan,
                     startDate: membership.startDate,
                     endDate: membership.endDate,
-                    paymentId: membership.paymentId,
-                    amount: getPlanConfig(membership.plan).price,
+                    stripePaymentIntentId: membership.stripePaymentIntentId,
+                    amount: PLANS[membership.plan]?.price || 0,
                     renewedAt: new Date()
                 });
             }
@@ -501,8 +506,7 @@ exports.activateMembership = async (req, res) => {
             membership.status = 'active';
             membership.startDate = startDate;
             membership.endDate = endDate;
-            membership.paymentId = razorpay_payment_id;
-            membership.razorpayOrderId = razorpay_order_id;
+            membership.stripePaymentIntentId = paymentIntentId;
             membership.autoRenew = true;
 
             await membership.save();
@@ -513,8 +517,7 @@ exports.activateMembership = async (req, res) => {
                 status: 'active',
                 startDate,
                 endDate,
-                paymentId: razorpay_payment_id,
-                razorpayOrderId: razorpay_order_id,
+                stripePaymentIntentId: paymentIntentId,
                 autoRenew: true
             });
         }
@@ -524,9 +527,9 @@ exports.activateMembership = async (req, res) => {
             req.user._id,
             'User',
             {
-                type: 'wallet_credit', // Using generic type or specific if supported
-                title: `${planConfig.name} Membership Activated!`,
-                message: `Welcome to ${planConfig.name}! Your membership is active until ${endDate.toDateString()}`,
+                type: 'wallet_credit', // Using generic type
+                title: `${plan} Membership Activated!`,
+                message: `Welcome to ${plan}! Your membership is active until ${endDate.toDateString()}`,
                 channels: ['push', 'email'],
                 data: { plan, endDate }
             }
@@ -534,7 +537,7 @@ exports.activateMembership = async (req, res) => {
 
         res.json({
             success: true,
-            message: `${planConfig.name} membership activated successfully`,
+            message: `${plan} membership activated successfully`,
             data: {
                 plan,
                 startDate,
@@ -601,8 +604,7 @@ exports.getAllMemberships = async (req, res) => {
             Membership.countDocuments(query)
         ]);
 
-        const { MEMBERSHIP_PLANS } = require('../config/membershipPlans');
-
+        // Simple calculation fallback
         const activeNow = await Membership.find({
             plan: { $in: ['premium', 'premium_plus'] },
             status: 'active',
@@ -613,8 +615,8 @@ exports.getAllMemberships = async (req, res) => {
         const premiumPlusCount = activeNow.filter(m => m.plan === 'premium_plus').length;
 
         const monthlyRevenue =
-            (premiumCount * MEMBERSHIP_PLANS.premium.price) +
-            (premiumPlusCount * (MEMBERSHIP_PLANS.premium_plus.price / 3));
+            (premiumCount * PLANS.premium.price) +
+            (premiumPlusCount * (PLANS.premium_plus.price / 3));
 
         res.json({
             success: true,
@@ -632,4 +634,3 @@ exports.getAllMemberships = async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 };
-

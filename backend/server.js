@@ -40,6 +40,7 @@ const bulkOperationsRoutes = require('./src/routes/bulkOperationsRoutes');
 const searchRoutes = require('./src/routes/searchRoutes');
 const returnRoutes = require('./src/routes/returnRoutes');
 const giftCardRoutes = require('./src/routes/giftCardRoutes');
+const agentRoutes = require('./src/routes/agentRoutes');
 
 // Import middlewares
 const { notFound, errorHandler } = require('./src/middlewares/errorMiddleware');
@@ -98,7 +99,7 @@ app.get('/api', (req, res) => {
         success: true,
         message: 'Green Basket API',
         version: '1.0.0',
-        totalAPIs: 204,
+        totalAPIs: 221,
         endpoints: {
             authentication: {
                 userSignup: 'POST /api/auth/user/signup',
@@ -349,6 +350,26 @@ app.get('/api', (req, res) => {
                 cancelGiftCard: 'PATCH /api/gift-cards/admin/:id/cancel (Admin)',
                 initiatePurchase: 'POST /api/gift-cards/purchase/initiate (User)',
                 verifyPurchase: 'POST /api/gift-cards/purchase/verify (User)'
+            },
+            deliveryAgents: {
+                register: 'POST /api/agents/register',
+                login: 'POST /api/agents/login',
+                getProfile: 'GET /api/agents/me (Agent)',
+                updateProfile: 'PUT /api/agents/me (Agent)',
+                updateStatus: 'PUT /api/agents/me/status (Agent)',
+                updateLocation: 'POST /api/agents/me/location (Agent)',
+                getCurrentAssignment: 'GET /api/agents/assignments/current (Agent)',
+                getAssignments: 'GET /api/agents/assignments (Agent)',
+                getAssignmentById: 'GET /api/agents/assignments/:id (Agent)',
+                updateAssignmentStatus: 'PUT /api/agents/assignments/:id/status (Agent)',
+                getEarnings: 'GET /api/agents/earnings (Agent)',
+                getAllAgents: 'GET /api/admin/agents (Admin)',
+                getAgentById: 'GET /api/admin/agents/:id (Admin)',
+                getAgentAssignments: 'GET /api/admin/agents/:id/assignments (Admin)',
+                verifyAgent: 'PATCH /api/admin/agents/:id/verify (Admin)',
+                toggleAgentActive: 'PATCH /api/admin/agents/:id/toggle-active (Admin)',
+                manualAssign: 'POST /api/admin/orders/:orderId/assign/:agentId (Admin)',
+                getUnassignedOrders: 'GET /api/admin/orders/unassigned (Admin)'
             }
         },
         features: {
@@ -371,9 +392,10 @@ app.get('/api', (req, res) => {
                 'Merchant Bulk Operations (4 APIs)',
                 'Advanced Search & Filters (3 APIs)',
                 'Returns & Exchange System (6 APIs)',
-                'Gift Cards & Vouchers (7 APIs)'
+                'Gift Cards & Vouchers (7 APIs)',
+                'Delivery Agent System (17 APIs)'
             ],
-            total: '20 features, 204 APIs'
+            total: '21 features, 221 APIs'
         },
         documentation: 'See /backend/docs/ for detailed API documentation',
         health: 'GET /api/health'
@@ -411,6 +433,7 @@ app.use('/api/bulk', bulkOperationsRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/returns', returnRoutes);
 app.use('/api/gift-cards', giftCardRoutes);
+app.use('/api/agents', agentRoutes);
 
 // Error handling
 app.use(notFound);

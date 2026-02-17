@@ -9,7 +9,7 @@ const orderSchema = new mongoose.Schema({
         default: () => 'GB' + Date.now() + Math.floor(Math.random() * 1000)
     },
 
-    razorpayOrderId: {
+    stripePaymentIntentId: {
         type: String,
         index: true
     },
@@ -107,12 +107,13 @@ const orderSchema = new mongoose.Schema({
     paymentGateway: {
         provider: {
             type: String,
-            enum: ['razorpay', 'stripe', 'phonepe', 'cod'],
-            default: 'razorpay'
+            enum: ['stripe', 'phonepe', 'cod'],
+            default: 'stripe'
         },
-        orderId: String, // Razorpay order_id
-        paymentId: String, // Razorpay payment_id
-        signature: String, // Razorpay signature
+        paymentIntentId: String, // Stripe Payment Intent ID
+        clientSecret: String, // Stripe Client Secret
+        chargeId: String, // Stripe Charge ID
+        transferId: String, // Stripe Transfer ID (for connected accounts)
         transactionId: String // Bank/UPI transaction ID
     },
 
@@ -137,7 +138,7 @@ const orderSchema = new mongoose.Schema({
             enum: ['none', 'initiated', 'processing', 'completed', 'failed'],
             default: 'none'
         },
-        refundId: String,
+        stripeRefundId: String,
         amount: Number,
         reason: String,
         initiatedAt: Date,
@@ -212,6 +213,17 @@ const orderSchema = new mongoose.Schema({
             lng: Number,
             updatedAt: Date
         }
+    },
+
+    // Delivery Assignment
+    deliveryAssignment: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'DeliveryAssignment'
+    },
+    needsManualAssignment: {
+        type: Boolean,
+        default: false,
+        index: true
     },
 
     // Cancellation

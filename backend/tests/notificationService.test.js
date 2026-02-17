@@ -1,12 +1,18 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
-const notificationService = require('../src/services/notificationService'); // Aliases to notification.js
-const Notification = require('../src/models/Notification');
-const User = require('../src/models/User');
 
+// Need to mock these BEFORE requiring the service
 jest.mock('../src/models/Notification');
 jest.mock('../src/models/User');
-// We don't verify socket emissions here as they depend on server.io singleton
+// Mocking the downstream services so they don't actually send anything
+jest.mock('../src/services/email', () => jest.fn().mockResolvedValue(true));
+jest.mock('../src/services/sms', () => jest.fn().mockResolvedValue(true));
+jest.mock('../src/services/pushNotification', () => jest.fn().mockResolvedValue(true));
+
+const notificationService = require('../src/services/notification'); // Correct path
+const Notification = require('../src/models/Notification');
+const User = require('../src/models/User');
+const sendEmail = require('../src/services/email');
 
 describe('Unit Tests: Notification Service', () => {
 
@@ -14,34 +20,39 @@ describe('Unit Tests: Notification Service', () => {
         jest.clearAllMocks();
     });
 
-    it('should create a notification record', async () => {
+    it('should create a notification record and attempt to send email', async () => {
         const userId = new mongoose.Types.ObjectId().toString();
         const data = {
             recipient: userId,
             recipientModel: 'User',
             type: 'order_placed',
             title: 'Test Order',
-            message: 'Your order has been placed'
+            message: 'Your order has been placed',
+            channels: ['email'] // Simplify to just email for this test
         };
 
         // Mock User found
         User.findById.mockResolvedValue({
             _id: userId,
-            notificationPreferences: {}
+            email: 'test@example.com',
+            notificationPreferences: { email: { orderUpdates: true } }
         });
 
         // Mock Notification creation
+        const mockSave = jest.fn().mockResolvedValue(true);
         Notification.create.mockResolvedValue({
             ...data,
             _id: 'notif_123',
             user: userId,
             channels: { push: {}, email: {}, sms: {}, inApp: {} },
-            save: jest.fn().mockResolvedValue(true)
+            save: mockSave
         });
 
         // Suppress console warnings from missing keys in test env
         const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => { });
 
+        // Call the service (using the adapter adapter method for compatibility if needed, or direct)
+        // The service exports an instance, so we use it directly
         await notificationService.createNotification(data);
 
         expect(User.findById).toHaveBeenCalledWith(userId);
@@ -49,6 +60,9 @@ describe('Unit Tests: Notification Service', () => {
             user: userId,
             title: 'Test Order'
         }));
+
+        // Verify email was sent
+        expect(sendEmail).toHaveBeenCalled();
 
         consoleSpy.mockRestore();
     });

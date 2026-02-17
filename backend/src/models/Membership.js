@@ -27,16 +27,16 @@ const membershipSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
-    paymentId: {
+    stripePaymentIntentId: {
         type: String
     },
-    razorpaySubscriptionId: {
+    stripeSubscriptionId: {
         type: String
     },
     // Payment history
     paymentHistory: [{
         amount: Number,
-        paymentId: String,
+        stripePaymentIntentId: String, // Replaced paymentId
         date: {
             type: Date,
             default: Date.now

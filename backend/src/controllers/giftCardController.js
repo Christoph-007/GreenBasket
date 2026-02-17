@@ -1,12 +1,6 @@
 const GiftCard = require('../models/GiftCard');
 const Order = require('../models/Order');
-const Razorpay = require('razorpay');
-const crypto = require('crypto');
-
-const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET
-});
+const paymentService = require('../services/paymentService');
 
 /**
  * @desc    Generate gift card (Admin)
@@ -540,23 +534,21 @@ exports.initiatePurchase = async (req, res) => {
             });
         }
 
-        const options = {
-            amount: amount * 100, // paise
-            currency,
-            receipt: `gift_rcpt_${Date.now()}`,
-            notes: {
+        const paymentIntent = await paymentService.createPaymentIntent(
+            amount,
+            `gift_rcpt_${Date.now()}`,
+            req.user._id.toString(),
+            {
                 type: 'gift_card'
             }
-        };
-
-        const order = await razorpay.orders.create(options);
+        );
 
         res.json({
             success: true,
-            orderId: order.id,
-            amount: order.amount,
-            currency: order.currency,
-            key: process.env.RAZORPAY_KEY_ID
+            paymentIntentId: paymentIntent.id,
+            clientSecret: paymentIntent.client_secret,
+            amount: amount,
+            currency: currency
         });
     } catch (error) {
         console.error('Initiate purchase error:', error);
@@ -571,15 +563,19 @@ exports.initiatePurchase = async (req, res) => {
  */
 exports.verifyPurchase = async (req, res) => {
     try {
-        const { razorpay_order_id, razorpay_payment_id, razorpay_signature, amount, recipientEmail, message } = req.body;
+        const { paymentIntentId, amount, recipientEmail, message } = req.body;
 
-        const body = razorpay_order_id + "|" + razorpay_payment_id;
-        const expectedSignature = crypto
-            .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-            .update(body.toString())
-            .digest('hex');
+        if (!paymentIntentId || !amount) {
+            return res.status(400).json({
+                success: false,
+                error: 'paymentIntentId and amount are required'
+            });
+        }
 
-        if (expectedSignature === razorpay_signature) {
+        // Verify status with Stripe
+        const paymentIntent = await paymentService.getPaymentIntent(paymentIntentId);
+
+        if (paymentIntent.status === 'succeeded') {
             const giftCard = await GiftCard.create({
                 amount,
                 originalAmount: amount,
@@ -604,7 +600,7 @@ exports.verifyPurchase = async (req, res) => {
                 data: giftCard
             });
         } else {
-            res.status(400).json({ success: false, error: 'Invalid payment signature' });
+            res.status(400).json({ success: false, error: 'Payment verification failed or pending' });
         }
     } catch (error) {
         console.error('Verify purchase error:', error);

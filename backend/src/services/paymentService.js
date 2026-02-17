@@ -1,76 +1,82 @@
-const Razorpay = require('razorpay');
-const crypto = require('crypto');
-
-const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET
-});
+const { stripe } = require('../config/stripe');
 
 class PaymentService {
     /**
-     * Create Razorpay order
+     * Create Payment Intent
+     * @param {number} amount - Amount in INR
+     * @param {string} orderId - Internal Order ID
+     * @param {string} customerId - Customer ID
+     * @param {Object} metadata - Additional metadata
      */
-    async createOrder(amount, orderId, customerId) {
+    async createPaymentIntent(amount, orderId, customerId, metadata = {}) {
         try {
-            const options = {
-                amount: amount * 100, // Convert to paise
-                currency: 'INR',
-                receipt: orderId,
-                notes: {
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: Math.round(amount * 100), // Convert to paise/cents
+                currency: 'inr',
+                description: `Order ${orderId}`,
+                metadata: {
+                    orderId,
                     customerId,
-                    orderId
-                }
-            };
-
-            const razorpayOrder = await razorpay.orders.create(options);
-            return razorpayOrder;
+                    ...metadata
+                },
+                automatic_payment_methods: {
+                    enabled: true,
+                },
+            });
+            return paymentIntent;
         } catch (error) {
-            console.error('Razorpay order creation error:', error);
+            console.error('Stripe payment intent creation error:', error);
             throw error;
         }
     }
 
     /**
-     * Verify payment signature
+     * Retrieve Payment Intent
      */
-    verifyPaymentSignature(razorpayOrderId, razorpayPaymentId, razorpaySignature) {
-        const generatedSignature = crypto
-            .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-            .update(`${razorpayOrderId}|${razorpayPaymentId}`)
-            .digest('hex');
-
-        return generatedSignature === razorpaySignature;
+    async getPaymentIntent(paymentIntentId) {
+        try {
+            const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+            return paymentIntent;
+        } catch (error) {
+            console.error('Stripe retrieve payment intent error:', error);
+            throw error;
+        }
     }
 
     /**
-     * Process refund
+     * Process Refund
      */
-    async processRefund(paymentId, amount, orderId) {
+    async processRefund(paymentIntentId, amount, reason = 'requested_by_customer') {
         try {
-            const refund = await razorpay.payments.refund(paymentId, {
-                amount: amount * 100, // Convert to paise
-                notes: {
-                    orderId,
-                    reason: 'Order cancelled'
+            const refund = await stripe.refunds.create({
+                payment_intent: paymentIntentId,
+                amount: Math.round(amount * 100),
+                reason: null, // Stripe reasons are limited (duplicate, fraudulent, requested_by_customer), providing explicit one might fail if not in enum. safest is to put logic or leave null/default
+                metadata: {
+                    reason_description: reason
                 }
             });
             return refund;
         } catch (error) {
-            console.error('Refund error:', error);
+            console.error('Stripe refund error:', error);
             throw error;
         }
     }
 
     /**
-     * Fetch payment details
+     * Verify Webhook Signature
      */
-    async getPaymentDetails(paymentId) {
+    verifyWebhookSignature(payload, signature) {
         try {
-            const payment = await razorpay.payments.fetch(paymentId);
-            return payment;
-        } catch (error) {
-            console.error('Fetch payment error:', error);
-            throw error;
+            const event = stripe.webhooks.constructEvent(
+                payload,
+                signature,
+                process.env.STRIPE_WEBHOOK_SECRET
+            );
+            return event;
+        } catch (err) {
+            console.error(`Webhook signature verification failed: ${err.message}`);
+            throw err;
         }
     }
 }

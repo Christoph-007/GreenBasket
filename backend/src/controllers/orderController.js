@@ -3,6 +3,7 @@ const Cart = require('../models/Cart');
 const Product = require('../models/Product');
 const OrderSocket = require('../sockets/orderSocket');
 const notificationService = require('../services/notificationService');
+const assignmentService = require('../services/assignmentService');
 const mongoose = require('mongoose');
 
 // Create Order
@@ -238,7 +239,29 @@ exports.updateOrderStatus = async (req, res) => {
         order.statusHistory.push(statusEntry);
 
         // Update specific timestamps
-        if (status === 'confirmed' && !order.confirmedAt) order.confirmedAt = new Date();
+        if (status === 'confirmed' && !order.confirmedAt) {
+            order.confirmedAt = new Date();
+
+            // AUTO-ASSIGN DELIVERY AGENT
+            // This happens asynchronously and won't break the order flow if it fails
+            if (order.deliveryType === 'home-delivery') {
+                setImmediate(async () => {
+                    try {
+                        console.log(`🚚 Attempting auto-assignment for order ${order.orderId}`);
+                        const assignmentResult = await assignmentService.assignOrder(order._id);
+
+                        if (assignmentResult.success) {
+                            console.log(`✅ Order ${order.orderId} assigned to ${assignmentResult.driver.name}`);
+                        } else if (assignmentResult.needsManualAssignment) {
+                            console.warn(`⚠️ Order ${order.orderId} marked for manual assignment: ${assignmentResult.message}`);
+                        }
+                    } catch (error) {
+                        console.error(`❌ Auto-assignment failed for order ${order.orderId}:`, error.message);
+                        // Order continues normally - admin can manually assign later
+                    }
+                });
+            }
+        }
         if (status === 'preparing') order.preparingAt = new Date(); // If schema supports
         if (status === 'out-for-delivery') order.outForDeliveryAt = new Date(); // If schema supports
         if (status === 'delivered') order.deliveredAt = new Date();
