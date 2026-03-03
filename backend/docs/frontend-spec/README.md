@@ -49,6 +49,7 @@ This specification is organized into 13 comprehensive documents covering archite
 - **Navigation**: go_router with StatefulShellRoute for bottom tabs
 - **API**: Retrofit + Dio with auth interceptor and token refresh
 - **Offline**: Hive for cart persistence, product cache, search history
+- **Payments**: Stripe PaymentSheet (`flutter_stripe`) — replaces Razorpay
 - **Timeline**: 9 weeks across 6 phases
 - **Testing**: 80%+ coverage target with unit, widget, integration tests
 - **Security**: OWASP Mobile Top 10 compliant, GDPR/CCPA ready
@@ -57,7 +58,7 @@ This specification is organized into 13 comprehensive documents covering archite
 ✅ JWT authentication with biometric support  
 ✅ Product browsing with advanced search & filters  
 ✅ Offline cart with auto-sync  
-✅ Multi-step checkout with multiple payment options  
+✅ Multi-step checkout with Stripe PaymentSheet  
 ✅ Real-time order tracking  
 ✅ Push notifications (Firebase)  
 ✅ Recipe integration with "add to cart"  
@@ -102,13 +103,13 @@ This specification is organized into 13 comprehensive documents covering archite
 
 | Document | Status | Last Updated |
 |---|---|---|
-| 01-08 | ✅ Complete | 2026-02-13 |
-| 09 | ✅ Complete | 2026-02-13 |
-| 10 | ✅ Complete | 2026-02-13 |
-| 11 | ✅ Complete | 2026-02-13 |
-| 12 | ✅ Complete | 2026-02-13 |
-| 13 | ✅ Complete | 2026-02-13 |
-| Implementation Guides | 🚧 In Progress | 2026-02-13 |
+| 01-08 | ✅ Complete | 2026-02-18 |
+| 09 | ✅ Complete | 2026-02-18 |
+| 10 | ✅ Complete | 2026-02-18 |
+| 11 | ✅ Complete | 2026-02-18 |
+| 12 | ✅ Complete | 2026-02-18 |
+| 13 | ✅ Complete | 2026-02-18 |
+| Implementation Guides | 🚧 In Progress | 2026-02-18 |
 
 ---
 

@@ -1,10 +1,159 @@
 const User = require('../models/User');
 const Merchant = require('../models/Merchant');
 const Admin = require('../models/Admin');
+const Driver = require('../models/Driver');
 const generateToken = require('../utils/generateToken');
+const { generateAgentToken } = require('../middlewares/agentAuthMiddleware');
 const { sendEmail } = require('../services/emailService');
 const { addContactToSendGrid } = require('../services/sendgridContactService');
 const jwt = require('jsonwebtoken');
+
+// ─────────────────────────────────────────────────────────────
+// UNIFIED LOGIN  –  POST /api/auth/login
+// Accepts email + password, auto-detects role from DB,
+// returns { token, role, user }
+// ─────────────────────────────────────────────────────────────
+exports.unifiedLogin = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email and password are required'
+            });
+        }
+
+        // ── 1. Try Customer (User) ──────────────────────────────
+        const userRecord = await User.findOne({ email: email.toLowerCase() }).select('+password');
+        if (userRecord) {
+            const isMatch = await userRecord.comparePassword(password);
+            if (!isMatch) {
+                return res.status(401).json({ success: false, message: 'Invalid email or password' });
+            }
+            if (userRecord.isBlocked) {
+                return res.status(403).json({ success: false, message: 'Your account has been blocked. Please contact support.' });
+            }
+            userRecord.lastLoginAt = new Date();
+            await userRecord.save({ validateBeforeSave: false });
+            const token = generateToken(userRecord._id, 'user');
+            return res.json({
+                success: true,
+                message: 'Login successful',
+                token,
+                role: 'customer',
+                user: {
+                    id: userRecord._id,
+                    name: userRecord.name,
+                    email: userRecord.email,
+                    phone: userRecord.phone,
+                    profileImage: userRecord.profileImage,
+                    isPremium: userRecord.isPremium,
+                    loyaltyPoints: userRecord.loyaltyPoints
+                }
+            });
+        }
+
+        // ── 2. Try Merchant ─────────────────────────────────────
+        const merchantRecord = await Merchant.findOne({ email: email.toLowerCase() }).select('+password');
+        if (merchantRecord) {
+            const isMatch = await merchantRecord.comparePassword(password);
+            if (!isMatch) {
+                return res.status(401).json({ success: false, message: 'Invalid email or password' });
+            }
+            if (merchantRecord.isBlocked) {
+                return res.status(403).json({ success: false, message: 'Your account has been blocked.' });
+            }
+            merchantRecord.lastLoginAt = new Date();
+            await merchantRecord.save({ validateBeforeSave: false });
+            const token = generateToken(merchantRecord._id, 'merchant');
+            return res.json({
+                success: true,
+                message: 'Login successful',
+                token,
+                role: 'merchant',
+                user: {
+                    id: merchantRecord._id,
+                    name: merchantRecord.name,
+                    email: merchantRecord.email,
+                    businessName: merchantRecord.businessName,
+                    verificationStatus: merchantRecord.verificationStatus,
+                    isStoreOpen: merchantRecord.isStoreOpen
+                }
+            });
+        }
+
+        // ── 3. Try Admin ────────────────────────────────────────
+        const adminRecord = await Admin.findOne({ email: email.toLowerCase() }).select('+password');
+        if (adminRecord) {
+            const isMatch = await adminRecord.comparePassword(password);
+            if (!isMatch) {
+                return res.status(401).json({ success: false, message: 'Invalid email or password' });
+            }
+            adminRecord.lastLoginAt = new Date();
+            await adminRecord.save({ validateBeforeSave: false });
+            const token = generateToken(adminRecord._id, 'admin');
+            return res.json({
+                success: true,
+                message: 'Login successful',
+                token,
+                role: 'admin',
+                user: {
+                    id: adminRecord._id,
+                    name: adminRecord.name,
+                    email: adminRecord.email,
+                    role: adminRecord.role,
+                    permissions: adminRecord.permissions
+                }
+            });
+        }
+
+        // ── 4. Try Delivery Agent (Driver) ──────────────────────
+        const driverRecord = await Driver.findOne({ email: email.toLowerCase() }).select('+password');
+        if (driverRecord) {
+            const isMatch = await driverRecord.comparePassword(password);
+            if (!isMatch) {
+                return res.status(401).json({ success: false, message: 'Invalid email or password' });
+            }
+            if (!driverRecord.isActive) {
+                return res.status(403).json({ success: false, message: 'Your account has been deactivated. Please contact support.' });
+            }
+            const token = generateAgentToken(driverRecord._id);
+            return res.json({
+                success: true,
+                message: 'Login successful',
+                token,
+                role: 'delivery_agent',
+                user: {
+                    id: driverRecord._id,
+                    name: driverRecord.name,
+                    email: driverRecord.email,
+                    phone: driverRecord.phone,
+                    vehicleType: driverRecord.vehicleType,
+                    status: driverRecord.status,
+                    isVerified: driverRecord.isVerified,
+                    rating: driverRecord.rating,
+                    totalDeliveries: driverRecord.totalDeliveries,
+                    totalEarnings: driverRecord.totalEarnings
+                }
+            });
+        }
+
+        // ── 5. Email not found in any collection ────────────────
+        return res.status(404).json({
+            success: false,
+            message: 'No account found with this email address'
+        });
+
+    } catch (error) {
+        console.error('Unified login error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Login failed. Please try again.',
+            error: error.message
+        });
+    }
+};
 
 // User Signup
 exports.userSignup = async (req, res) => {

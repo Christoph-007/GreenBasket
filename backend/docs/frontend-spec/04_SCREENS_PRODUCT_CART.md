@@ -169,10 +169,11 @@
 
 ### Step 3 — Payment Method
 - Options list (RadioListTile style, 56dp each):
-  - Online Payment (Razorpay) — UPI/Card/NetBanking icons
+  - Online Payment (Stripe) — Card / UPI / NetBanking via Stripe PaymentSheet
   - Wallet Balance (show ₹balance, disabled if 0)
   - Cash on Delivery
 - Wallet partial pay toggle if wallet + online selected
+- Stripe PaymentSheet opens natively on "Continue" for online payment
 - "Continue" button
 
 ### Step 4 — Order Review

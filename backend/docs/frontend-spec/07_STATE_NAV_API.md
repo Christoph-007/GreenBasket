@@ -150,6 +150,9 @@ final goRouter = GoRouter(
     GoRoute(path: '/recipes', builder: ...),
     GoRoute(path: '/recipes/:id', builder: ...),
     GoRoute(path: '/wallet', builder: ...),
+    GoRoute(path: '/loyalty', builder: ...),
+    GoRoute(path: '/referral', builder: ...),
+    GoRoute(path: '/help', builder: ...),
   ],
 );
 ```

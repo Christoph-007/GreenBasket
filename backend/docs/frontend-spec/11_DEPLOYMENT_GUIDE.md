@@ -153,12 +153,9 @@ Create `android/app/proguard-rules.pro`:
 -keep class * implements com.google.gson.JsonSerializer
 -keep class * implements com.google.gson.JsonDeserializer
 
-# Razorpay
--keepclassmembers class * {
-    @android.webkit.JavascriptInterface <methods>;
-}
--keepattributes JavascriptInterface
--keep class com.razorpay.** { *; }
+# Stripe
+-keep class com.stripe.android.** { *; }
+-dontwarn com.stripe.android.**
 
 # Firebase
 -keep class com.google.firebase.** { *; }
@@ -398,7 +395,7 @@ flutter build ios --release --obfuscate --split-debug-info=build/ios/symbols
 ```bash
 # .env.development
 BASE_URL=http://localhost:6000
-RAZORPAY_KEY=rzp_test_xxxxx
+STRIPE_PUBLISHABLE_KEY=pk_test_xxxxx
 FIREBASE_PROJECT_ID=greenbasket-dev
 APP_ENV=development
 ```
@@ -408,7 +405,7 @@ APP_ENV=development
 ```bash
 # .env.staging
 BASE_URL=https://staging-api.greenbasket.com
-RAZORPAY_KEY=rzp_test_xxxxx
+STRIPE_PUBLISHABLE_KEY=pk_test_xxxxx
 FIREBASE_PROJECT_ID=greenbasket-staging
 APP_ENV=staging
 ```
@@ -418,7 +415,7 @@ APP_ENV=staging
 ```bash
 # .env.production
 BASE_URL=https://api.greenbasket.com
-RAZORPAY_KEY=rzp_live_xxxxx
+STRIPE_PUBLISHABLE_KEY=pk_live_xxxxx
 FIREBASE_PROJECT_ID=greenbasket-prod
 APP_ENV=production
 ```

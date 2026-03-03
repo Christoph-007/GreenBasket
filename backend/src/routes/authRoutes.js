@@ -4,6 +4,12 @@ const authController = require('../controllers/authController');
 const { validateSignup, validateLogin } = require('../utils/validators');
 const { validate } = require('../middlewares/validationMiddleware');
 
+// ─────────────────────────────────────────────────────────────
+// UNIFIED LOGIN  –  single endpoint for all user types
+// POST /api/auth/login  →  { token, role, user }
+// ─────────────────────────────────────────────────────────────
+router.post('/login', authController.unifiedLogin);
+
 // User Authentication
 router.post('/user/signup', validateSignup, validate, authController.userSignup);
 router.post('/user/login', validateLogin, validate, authController.userLogin);

@@ -136,7 +136,7 @@ class NotificationService {
     }
 
     getTypeCategory(type) {
-        const orderTypes = ['order', 'order_placed', 'order_confirmed', 'order_preparing',
+        const orderTypes = ['order', 'order_placed', 'order_confirmed',
             'order_out_for_delivery', 'order_delivered', 'order_cancelled'];
         const offerTypes = ['offer_available', 'flash_sale'];
         const productTypes = ['price_drop', 'back_in_stock', 'prebooking_available'];

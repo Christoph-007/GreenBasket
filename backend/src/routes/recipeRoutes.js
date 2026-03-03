@@ -13,6 +13,7 @@ router.post('/:id/calculate-ingredients', recipeController.calculateIngredients)
 // Admin routes
 router.post('/', authenticate, isAdmin, uploadRecipeImage, recipeController.createRecipe);
 router.put('/:id', authenticate, isAdmin, uploadRecipeImage, recipeController.updateRecipe);
+router.patch('/:id', authenticate, isAdmin, uploadRecipeImage, recipeController.updateRecipe);
 router.delete('/:id', authenticate, isAdmin, recipeController.deleteRecipe);
 
 module.exports = router;

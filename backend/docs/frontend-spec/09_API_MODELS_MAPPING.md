@@ -495,7 +495,7 @@ class InstructionStep {
 | `/api/wallet` | GET | `WalletApi.getWallet()` | `WalletLoadRequested` | WalletScreen, ProfileScreen |
 | `/api/wallet/transactions` | GET | `WalletApi.getTransactions(page, limit)` | `WalletTransactionsLoadRequested` | WalletScreen |
 | `/api/wallet/add-money` | POST | `WalletApi.addMoney(amount)` | `WalletTopUpRequested` | WalletScreen |
-| `/api/wallet/verify-topup` | POST | `WalletApi.verifyTopup(paymentId, orderId, signature)` | `WalletTopUpVerified` | WalletScreen (after Razorpay) |
+| `/api/wallet/verify-topup` | POST | `WalletApi.verifyTopup(paymentIntentId)` | `WalletTopUpVerified` | WalletScreen (after Stripe PaymentSheet) |
 
 ---
 
@@ -523,8 +523,12 @@ class InstructionStep {
 
 | Endpoint | Method | Retrofit Service | Bloc Event | Screen/Flow |
 |---|---|---|---|---|
-| `/api/payment/create-order` | POST | `PaymentApi.createRazorpayOrder(amount, orderId)` | `PaymentOrderCreated` | CheckoutScreen |
-| `/api/payment/verify` | POST | `PaymentApi.verifyPayment(paymentId, orderId, signature)` | `PaymentVerified` | CheckoutScreen → OrderSuccessScreen |
+| `/api/payment/create-payment-intent` | POST | `PaymentApi.createPaymentIntent(amount, orderId)` | `PaymentIntentCreated` | CheckoutScreen (Stripe PaymentSheet) |
+| `/api/payment/verify` | POST | `PaymentApi.verifyPayment(paymentIntentId, orderId)` | `PaymentVerified` | CheckoutScreen → OrderSuccessScreen |
+| `/api/payment/webhook` | POST | (Backend only — Stripe webhook handler) | N/A | Background |
+| `/api/payment/refund/:orderId` | POST | `PaymentApi.requestRefund(orderId)` | `RefundRequested` | OrderDetailScreen |
+| `/api/payment/methods` | GET | `PaymentApi.getPaymentMethods()` | `PaymentMethodsLoadRequested` | CheckoutScreen |
+| `/api/payment/status/:orderId` | GET | `PaymentApi.getPaymentStatus(orderId)` | `PaymentStatusChecked` | OrderDetailScreen |
 
 ---
 

@@ -152,6 +152,13 @@ const productSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    premiumAccessStartDate: {
+        type: Date,
+        default: Date.now  // When premium members can start buying
+    },
+    premiumAccessEndDate: {
+        type: Date  // Specific date until which the product is premium-only
+    },
 
     // Pre-booking Features
     isPreBookable: {

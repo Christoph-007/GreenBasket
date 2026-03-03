@@ -543,9 +543,7 @@ exports.deleteOffer = async (req, res) => {
             });
         }
 
-        // Deactivate instead of hard delete (preserve history)
-        offer.status = 'inactive';
-        await offer.save();
+        await offer.deleteOne();
 
         res.json({
             success: true,

@@ -66,9 +66,10 @@ exports.addToCart = async (req, res) => {
                 }]
             });
         } else {
-            // Check if product already in cart
+            // Check if product with same preparation already in cart
             const existingItemIndex = cart.items.findIndex(
-                item => item.product.toString() === productId
+                item => item.product.toString() === productId &&
+                    (item.preparation || 'whole') === (preparation || 'whole')
             );
 
             if (existingItemIndex > -1) {
@@ -108,7 +109,7 @@ exports.updateCartItem = async (req, res) => {
     try {
         const userId = req.user.id;
         const { productId } = req.params;
-        const { quantity } = req.body;
+        const { quantity, preparation } = req.body;
 
         const cart = await Cart.findOne({ user: userId });
 
@@ -120,7 +121,8 @@ exports.updateCartItem = async (req, res) => {
         }
 
         const itemIndex = cart.items.findIndex(
-            item => item.product.toString() === productId
+            item => item.product.toString() === productId &&
+                (item.preparation || 'whole') === (preparation || 'whole')
         );
 
         if (itemIndex === -1) {
@@ -159,6 +161,7 @@ exports.removeFromCart = async (req, res) => {
     try {
         const userId = req.user.id;
         const { productId } = req.params;
+        const { preparation } = req.query; // Use query param for preparation in DELETE
 
         const cart = await Cart.findOne({ user: userId });
 
@@ -170,7 +173,8 @@ exports.removeFromCart = async (req, res) => {
         }
 
         cart.items = cart.items.filter(
-            item => item.product.toString() !== productId
+            item => !(item.product.toString() === productId &&
+                (item.preparation || 'whole') === (preparation || 'whole'))
         );
 
         await cart.calculateTotal();
@@ -283,4 +287,3 @@ exports.addRecipeToCart = async (req, res) => {
         });
     }
 };
-  

@@ -229,13 +229,33 @@ exports.getTrendingProducts = async (req, res) => {
             }
         ];
 
-        const trendingProducts = await Order.aggregate(pipeline);
+        let trendingProducts = await Order.aggregate(pipeline);
+
+        if (trendingProducts.length === 0) {
+            // Fallback to top-rated products if no orders exist yet
+            const popularProducts = await Product.find({ isActive: true })
+                .sort({ averageRating: -1, stock: -1 })
+                .limit(parseInt(limit));
+
+            trendingProducts = popularProducts.map(p => ({
+                product: {
+                    _id: p._id,
+                    name: p.name,
+                    price: p.price,
+                    primaryImage: p.primaryImage,
+                    averageRating: p.averageRating,
+                    stock: p.stock
+                },
+                totalSold: 0,
+                orderCount: 0
+            }));
+        }
 
         res.json({
             success: true,
             data: {
                 trendingProducts,
-                period: 'Last 7 days'
+                period: trendingProducts[0]?.totalSold === 0 ? 'All Time (Fallback)' : 'Last 7 days'
             }
         });
     } catch (error) {

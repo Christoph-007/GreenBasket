@@ -105,6 +105,74 @@ exports.getMerchantEarnings = async (req, res) => {
 };
 
 /**
+ * @desc    Merchant requests a manual payout
+ * @route   POST /api/financial/merchants/request-payout
+ * @access  Private (Merchant)
+ */
+exports.requestPayout = async (req, res) => {
+    try {
+        const merchantId = req.user._id;
+        const { amount } = req.body;
+
+        if (!amount || isNaN(amount) || Number(amount) <= 0) {
+            return res.status(400).json({ success: false, error: 'A valid positive amount is required' });
+        }
+
+        const requestedAmount = Number(amount);
+
+        // Calculate available balance (reuse earnings logic)
+        const settings = await PlatformSettings.findOne() ||
+            { commission: { defaultRate: 5 }, minimumPayoutAmount: 0 };
+
+        const commissionRate = settings.commission.defaultRate;
+
+        const allOrders = await Order.find({ merchant: merchantId, status: 'delivered' });
+        const totalRevenue = allOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+        const totalCommission = (totalRevenue * commissionRate) / 100;
+        const totalEarned = totalRevenue - totalCommission;
+
+        const completedPayouts = await Payout.find({ merchant: merchantId, status: 'completed' });
+        const totalWithdrawn = completedPayouts.reduce((sum, p) => sum + p.netAmount, 0);
+
+        const pendingPayouts = await Payout.find({ merchant: merchantId, status: { $in: ['pending', 'processing'] } });
+        const totalPending = pendingPayouts.reduce((sum, p) => sum + p.netAmount, 0);
+
+        const availableBalance = Math.max(0, totalEarned - totalWithdrawn - totalPending);
+
+        if (requestedAmount > availableBalance) {
+            return res.status(400).json({
+                success: false,
+                error: `Requested amount ($${requestedAmount.toFixed(2)}) exceeds available balance ($${availableBalance.toFixed(2)})`
+            });
+        }
+
+        const now = new Date();
+        const payout = await Payout.create({
+            merchant: merchantId,
+            period: { startDate: now, endDate: now },
+            netAmount: requestedAmount,
+            grossRevenue: requestedAmount,
+            platformCommission: { rate: 0, amount: 0 },
+            status: 'pending',
+            notes: 'Merchant-initiated payout request'
+        });
+
+        res.status(201).json({
+            success: true,
+            message: 'Payout request submitted successfully',
+            data: { payoutId: payout.payoutId, amount: payout.netAmount, status: payout.status }
+        });
+    } catch (error) {
+        console.error('Request payout error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to submit payout request',
+            details: error.message
+        });
+    }
+};
+
+/**
  * @desc    Get merchant payouts
  * @route   GET /api/financial/merchants/payouts
  * @access  Private (Merchant)

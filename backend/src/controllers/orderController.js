@@ -87,7 +87,14 @@ exports.createOrder = async (req, res) => {
             paymentMethod,
             paymentStatus: paymentMethod === 'cod' ? 'pending' : 'pending',
             specialRequests,
-            couponCode
+            couponCode,
+            statusHistory: [{
+                status: 'pending',
+                timestamp: new Date(),
+                note: 'Order placed successfully',
+                updatedBy: userId,
+                updatedByModel: 'User'
+            }]
         });
 
         // Clear cart
@@ -177,7 +184,7 @@ exports.getMerchantOrders = async (req, res) => {
         if (status) query.status = status;
 
         const orders = await Order.find(query)
-            .populate('customer', 'name phone profileImage')
+            .populate('customer', 'name phone profileImage isPremium')
             .populate('deliveryAddress')
             .sort({ createdAt: -1 })
             .limit(limit * 1)
@@ -213,10 +220,21 @@ exports.updateOrderStatus = async (req, res) => {
         const { status, note } = req.body;
         const merchantId = req.user.id;
 
-        const order = await Order.findOne({
-            _id: id,
-            merchant: merchantId
-        }).populate('customer', 'name email');
+        if (!status) {
+            return res.status(400).json({
+                success: false,
+                message: 'Status is required'
+            });
+        }
+
+        const query = mongoose.Types.ObjectId.isValid(id)
+            ? { _id: id, merchant: merchantId }
+            : { orderId: id, merchant: merchantId };
+
+        const order = await Order.findOne(query)
+            .populate('customer', 'name email phone isPremium')
+            .populate('items.product', 'name primaryImage')
+            .populate('deliveryAddress');
 
         if (!order) {
             return res.status(404).json({
@@ -262,35 +280,39 @@ exports.updateOrderStatus = async (req, res) => {
                 });
             }
         }
-        if (status === 'preparing') order.preparingAt = new Date(); // If schema supports
-        if (status === 'out-for-delivery') order.outForDeliveryAt = new Date(); // If schema supports
+        if (status === 'out-for-delivery') order.outForDeliveryAt = new Date();
         if (status === 'delivered') order.deliveredAt = new Date();
 
         await order.save();
 
-        // Real-time update to customer
-        OrderSocket.notifyOrderStatusUpdate(order.customer._id, {
-            orderId: order.orderId,
-            status: order.status,
-            statusMessage: getStatusMessage(status)
-        });
+        // Real-time update to customer & Notifications
+        try {
+            OrderSocket.notifyOrderStatusUpdate(order.customer._id, {
+                orderId: order.orderId,
+                status: order.status,
+                statusMessage: getStatusMessage(status)
+            });
 
-        // Send notification
-        await notificationService.createNotification({
-            recipient: order.customer._id,
-            recipientModel: 'User',
-            type: 'order',
-            title: 'Order Status Updated',
-            message: `Your order ${order.orderId} is now ${status}`,
-            data: { orderId: order._id, status }
-        });
+            await notificationService.createNotification({
+                recipient: order.customer._id,
+                recipientModel: 'User',
+                type: 'order',
+                title: 'Order Status Updated',
+                message: `Your order ${order.orderId} is now ${status}`,
+                data: { orderId: order._id, status }
+            });
+        } catch (error) {
+            console.error('⚠️ Error sending status update notification:', error.message);
+            // Don't fail the whole request for notification errors
+        }
 
         res.json({
             success: true,
             message: 'Order status updated',
-            data: { order }
+            data: order
         });
     } catch (error) {
+        console.error('❌ Status update failed:', error);
         res.status(500).json({
             success: false,
             message: 'Error updating order status',
@@ -304,8 +326,10 @@ exports.getOrderById = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const order = await Order.findById(id)
-            .populate('customer', 'name email phone')
+        const query = mongoose.Types.ObjectId.isValid(id) ? { _id: id } : { orderId: id };
+
+        const order = await Order.findOne(query)
+            .populate('customer', 'name email phone isPremium')
             .populate('merchant', 'businessName phone')
             .populate('items.product', 'name primaryImage')
             .populate('deliveryAddress');
@@ -319,7 +343,7 @@ exports.getOrderById = async (req, res) => {
 
         res.json({
             success: true,
-            data: { order }
+            data: order
         });
     } catch (error) {
         res.status(500).json({
@@ -337,7 +361,11 @@ exports.cancelOrder = async (req, res) => {
         const { reason } = req.body;
         const userId = req.user.id;
 
-        const order = await Order.findOne({ _id: id, customer: userId });
+        const query = mongoose.Types.ObjectId.isValid(id)
+            ? { _id: id, customer: userId }
+            : { orderId: id, customer: userId };
+
+        const order = await Order.findOne(query);
 
         if (!order) {
             return res.status(404).json({
@@ -390,7 +418,6 @@ exports.cancelOrder = async (req, res) => {
 const getStatusMessage = (status) => {
     const messages = {
         'confirmed': 'Your order has been confirmed',
-        'preparing': 'Your order is being prepared',
         'ready': 'Your order is ready for pickup/delivery',
         'out-for-delivery': 'Your order is out for delivery',
         'delivered': 'Your order has been delivered',
@@ -532,7 +559,9 @@ exports.addReview = async (req, res) => {
 exports.enhancedTrackOrder = async (req, res) => {
     try {
         const { id } = req.params;
-        const order = await Order.findById(id)
+        const query = mongoose.Types.ObjectId.isValid(id) ? { _id: id } : { orderId: id };
+
+        const order = await Order.findOne(query)
             .populate('deliveryPersonnel', 'name phone vehicleNumber')
             .populate('merchant', 'businessName phone') // Location might not be in merchant model selection directly or needs processing
             .select('orderId status statusHistory estimatedDeliveryTime deliveryPersonnel merchant');
@@ -542,7 +571,7 @@ exports.enhancedTrackOrder = async (req, res) => {
         }
 
         // Calculate progress percentage
-        const statusSteps = ['pending', 'confirmed', 'preparing', 'out-for-delivery', 'delivered'];
+        const statusSteps = ['pending', 'confirmed', 'out-for-delivery', 'delivered'];
         const currentStepIndex = statusSteps.indexOf(order.status);
         const progress = Math.max(0, Math.round(((currentStepIndex + 1) / statusSteps.length) * 100));
 
@@ -577,7 +606,8 @@ exports.updateOrderLocation = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Latitude and longitude are required' });
         }
 
-        const order = await Order.findById(id);
+        const query = mongoose.Types.ObjectId.isValid(id) ? { _id: id } : { orderId: id };
+        const order = await Order.findOne(query);
         if (!order) return res.status(404).json({ success: false, error: 'Order not found' });
 
         if (!order.deliveryPersonnel) order.deliveryPersonnel = {};
@@ -627,7 +657,6 @@ exports.getOrderTracking = async (req, res) => {
         const statusConfig = [
             { status: 'pending', label: 'Order Placed', description: 'Your order has been placed successfully' },
             { status: 'confirmed', label: 'Order Confirmed', description: 'Merchant has confirmed your order' },
-            { status: 'preparing', label: 'Preparing', description: 'Your order is being prepared' },
             { status: 'out_for_delivery', label: 'Out for Delivery', description: 'Your order is on the way' },
             { status: 'delivered', label: 'Delivered', description: 'Order delivered successfully' }
         ];

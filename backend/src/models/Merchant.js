@@ -40,13 +40,22 @@ const merchantSchema = new mongoose.Schema({
         type: String,
         maxlength: 500
     },
+    sellingModel: {
+        type: String,
+        enum: ['retail', 'wholesale', 'both'],
+        default: 'retail'
+    },
+    allowsSubscriptions: {
+        type: Boolean,
+        default: false
+    },
 
     // Location
     address: {
-        street: String,
-        city: String,
-        state: String,
-        pincode: String,
+        street: { type: String, required: true },
+        city: { type: String, required: true, index: true },
+        state: { type: String, required: true },
+        pincode: { type: String, required: true, index: true },
         landmark: String
     },
     location: {
@@ -286,7 +295,48 @@ const merchantSchema = new mongoose.Schema({
 
     lastLoginAt: Date
 }, {
-    timestamps: true
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+});
+
+// Virtual for dynamic store status
+merchantSchema.virtual('isCurrentlyOpen').get(function () {
+    // 1. Check if the store is manually closed
+    if (!this.isStoreOpen) return false;
+
+    // 2. Check Vacation Mode
+    if (this.vacationMode && this.vacationMode.isActive) {
+        const now = new Date();
+        if (now >= this.vacationMode.startDate && now <= this.vacationMode.endDate) {
+            return false;
+        }
+    }
+
+    // 3. Check Operating Hours
+    if (!this.operatingHours) return true;
+
+    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const now = new Date();
+    const dayName = days[now.getDay()];
+    const todayHours = this.operatingHours[dayName];
+
+    if (!todayHours || todayHours.isOpen === false) return false;
+
+    if (todayHours.open && todayHours.close) {
+        const [openH, openM] = todayHours.open.split(':').map(Number);
+        const [closeH, closeM] = todayHours.close.split(':').map(Number);
+
+        const currentTime = now.getHours() * 60 + now.getMinutes();
+        const openTime = openH * 60 + openM;
+        const closeTime = closeH * 60 + closeM;
+
+        if (currentTime < openTime || currentTime > closeTime) {
+            return false;
+        }
+    }
+
+    return true;
 });
 
 // Hash password
@@ -300,5 +350,21 @@ merchantSchema.pre('save', async function (next) {
 merchantSchema.methods.comparePassword = async function (candidatePassword) {
     return await bcrypt.compare(candidatePassword, this.password);
 };
+
+// Text index for search functionality
+merchantSchema.index({
+    name: 'text',
+    businessName: 'text',
+    'address.city': 'text',
+    businessDescription: 'text'
+}, {
+    weights: {
+        businessName: 10,
+        name: 5,
+        'address.city': 3,
+        businessDescription: 1
+    },
+    name: 'MerchantSearchIndex'
+});
 
 module.exports = mongoose.model('Merchant', merchantSchema);

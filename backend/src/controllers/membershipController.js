@@ -289,20 +289,24 @@ exports.getPremiumProducts = async (req, res) => {
             });
         }
 
+        const now = new Date();
+        const premiumQuery = {
+            isActive: true,
+            premiumAccessStartDate: { $lte: now },
+            $or: [
+                { isPremiumExclusive: true },
+                { premiumAccessEndDate: { $gt: now } }
+            ]
+        };
+
         const [products, total] = await Promise.all([
-            Product.find({
-                isPremiumExclusive: true,
-                isActive: true
-            })
+            Product.find(premiumQuery)
                 .populate('merchant', 'businessName averageRating')
                 .populate('category', 'name')
                 .skip(skip)
                 .limit(parseInt(limit))
                 .sort({ createdAt: -1 }),
-            Product.countDocuments({
-                isPremiumExclusive: true,
-                isActive: true
-            })
+            Product.countDocuments(premiumQuery)
         ]);
 
         res.json({

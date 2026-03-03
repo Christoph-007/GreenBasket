@@ -189,7 +189,7 @@ This is a **production-ready, comprehensive Flutter frontend specification** for
   - Input validation (sanitization, XSS prevention, SQL injection prevention)
   - Error handling (no stack traces exposed, generic messages)
 - **Payment Security**:
-  - Razorpay integration (SDK updates, backend verification, signature verification)
+  - Stripe integration (SDK updates, backend verification via PaymentIntent status)
   - Wallet security
 - **Privacy & Compliance**:
   - User data collection (consent, opt-out, permissions)
@@ -230,7 +230,7 @@ This is a **production-ready, comprehensive Flutter frontend specification** for
 - 🧪 **Testing**: Unit, widget, integration, golden tests with CI/CD
 - 📱 **Offline**: Cart persistence, product cache, auto-sync
 - 🔔 **Notifications**: Firebase Cloud Messaging with deep links
-- 💳 **Payments**: Razorpay integration with backend verification
+- 💳 **Payments**: Stripe PaymentSheet integration with backend verification
 - 🌐 **Localization**: Ready for i18n (structure in place)
 - ♿ **Accessibility**: WCAG AA compliant, screen reader support
 - 📊 **Analytics**: Firebase Analytics, Crashlytics, Performance Monitoring
@@ -355,6 +355,6 @@ This specification represents **production-grade planning** for a modern Flutter
 
 ---
 
-**Last Updated**: 2026-02-13  
+**Last Updated**: 2026-02-18  
 **Status**: ✅ Production-Ready  
-**Version**: 1.0.0
+**Version**: 1.1.0

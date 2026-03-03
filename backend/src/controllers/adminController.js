@@ -24,6 +24,13 @@ exports.verifyMerchant = async (req, res) => {
         const { id } = req.params;
         const { status, rejectionReason } = req.body; // status: 'approved' or 'rejected'
 
+        if (!status || !['approved', 'rejected'].includes(status)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please provide a valid status (approved or rejected)'
+            });
+        }
+
         const merchant = await Merchant.findById(id);
         if (!merchant) {
             return res.status(404).json({
@@ -33,7 +40,7 @@ exports.verifyMerchant = async (req, res) => {
         }
 
         merchant.verificationStatus = status;
-        merchant.verifiedBy = req.user.id;
+        merchant.verifiedBy = req.user._id;
         merchant.verifiedAt = new Date();
 
         if (status === 'rejected') {

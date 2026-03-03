@@ -8,6 +8,7 @@ router.use(protect);
 // Merchant routes
 router.get('/merchants/earnings', restrictTo('merchant'), financialController.getMerchantEarnings);
 router.get('/merchants/payouts', restrictTo('merchant'), financialController.getMerchantPayouts);
+router.post('/merchants/request-payout', restrictTo('merchant'), financialController.requestPayout);
 router.get('/payouts/:id', financialController.getPayoutById);
 
 // Admin routes

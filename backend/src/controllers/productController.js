@@ -1,4 +1,6 @@
 const Product = require('../models/Product');
+const Category = require('../models/Category');
+const mongoose = require('mongoose');
 const uploadService = require('../services/uploadService');
 
 // Get All Products
@@ -7,7 +9,42 @@ exports.getAllProducts = async (req, res) => {
         const { page = 1, limit = 12, category, merchant, search, sort = '-createdAt' } = req.query;
 
         const query = { status: 'active' };
-        if (category) query.category = category;
+
+        // Premium Logic: Filter restricted products for non-premium users
+        const isPremium = req.user && req.userType === 'user' && req.user.isPremium;
+        const now = new Date();
+
+        if (isPremium) {
+            // Premium users: see products available to premium members
+            query.premiumAccessStartDate = { $lte: now };
+        } else {
+            // Regular users: see public products
+            query.isPremiumExclusive = { $ne: true };
+            query.$and = [
+                { premiumAccessStartDate: { $lte: now } },
+                {
+                    $or: [
+                        { premiumAccessEndDate: { $exists: false } },
+                        { premiumAccessEndDate: null },
+                        { premiumAccessEndDate: { $lte: now } }
+                    ]
+                }
+            ];
+        }
+
+        if (category) {
+            if (mongoose.Types.ObjectId.isValid(category)) {
+                query.category = category;
+            } else {
+                const cat = await Category.findOne({ name: new RegExp(`^${category}$`, 'i') });
+                if (cat) {
+                    query.category = cat._id;
+                } else {
+                    return res.json({ success: true, data: { products: [], pagination: { page: 1, limit, total: 0, pages: 0 } } });
+                }
+            }
+        }
+
         if (merchant) query.merchant = merchant;
         if (search) {
             query.$text = { $search: search };
@@ -59,6 +96,33 @@ exports.getProductById = async (req, res) => {
             });
         }
 
+        // Premium Logic: Check if user is restricted
+        const isPremium = req.user && req.userType === 'user' && req.user.isPremium;
+        const isOwner = req.user && req.userType === 'merchant' && product.merchant._id.toString() === req.user._id.toString();
+
+        if (!isOwner) {
+            const now = new Date();
+
+            // Check if product is even released for premium
+            if (now < product.premiumAccessStartDate) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'This product is not yet available.'
+                });
+            }
+
+            // Check if product is still premium-only
+            if (!isPremium) {
+                const isEarlyAccess = product.premiumAccessEndDate && now < product.premiumAccessEndDate;
+                if (product.isPremiumExclusive || isEarlyAccess) {
+                    return res.status(403).json({
+                        success: false,
+                        message: product.isPremiumExclusive ? 'This product is exclusive to premium members.' : 'This product is currently in early access for premium members.'
+                    });
+                }
+            }
+        }
+
         // Increment views
         product.views += 1;
         await product.save();
@@ -79,8 +143,31 @@ exports.getProductById = async (req, res) => {
 // Create Product (Merchant)
 exports.createProduct = async (req, res) => {
     try {
-        const merchantId = req.user.id;
-        const productData = req.body;
+        const merchantId = req.user._id;
+        const productData = { ...req.body };
+
+        // Check if product with same name already exists for this merchant (Upsert logic)
+        const existingProduct = await Product.findOne({
+            name: productData.name,
+            merchant: merchantId
+        });
+
+        if (existingProduct) {
+            existingProduct.stock += (parseInt(productData.stock) || 0);
+
+            // Re-activate if it was out of stock
+            if (existingProduct.stock > 0 && existingProduct.status === 'out-of-stock') {
+                existingProduct.status = 'active';
+            }
+
+            await existingProduct.save();
+
+            return res.status(200).json({
+                success: true,
+                message: 'Product already exists. Stock updated successfully.',
+                data: { product: existingProduct }
+            });
+        }
 
         // Handle image uploads
         let images = [];
@@ -88,11 +175,20 @@ exports.createProduct = async (req, res) => {
             images = await uploadService.uploadMultipleImages(req.files, 'products');
         }
 
+        if (req.body.premiumAccessStartDate && req.body.premiumAccessEndDate) {
+            if (new Date(req.body.premiumAccessStartDate) >= new Date(req.body.premiumAccessEndDate)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Premium access start date must be before the end date'
+                });
+            }
+        }
+
         const product = await Product.create({
             ...productData,
             merchant: merchantId,
             images: images,
-            primaryImage: images[0]?.url || ''
+            primaryImage: images[0]?.url || req.body.primaryImage || 'https://res.cloudinary.com/demo/image/upload/sample.jpg'
         });
 
         res.status(201).json({
@@ -113,15 +209,24 @@ exports.createProduct = async (req, res) => {
 exports.updateProduct = async (req, res) => {
     try {
         const { id } = req.params;
-        const merchantId = req.user.id;
-        const updates = req.body;
+        const merchantId = req.user._id;
+        const updates = { ...req.body };
 
-        const product = await Product.findOne({ _id: id, merchant: merchantId });
+        // 1. Check if product exists at all
+        const product = await Product.findById(id);
 
         if (!product) {
             return res.status(404).json({
                 success: false,
-                message: 'Product not found'
+                message: `Product with ID ${id} not found in database.`
+            });
+        }
+
+        // 2. Check ownership
+        if (product.merchant.toString() !== merchantId.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: `Access denied. You do not own this product. (Your ID: ${merchantId}, Product Owner: ${product.merchant})`
             });
         }
 
@@ -155,16 +260,27 @@ exports.updateProduct = async (req, res) => {
 exports.deleteProduct = async (req, res) => {
     try {
         const { id } = req.params;
-        const merchantId = req.user.id;
+        const merchantId = req.user._id;
 
-        const product = await Product.findOneAndDelete({ _id: id, merchant: merchantId });
+        // 1. Check if product exists at all
+        const productCheck = await Product.findById(id);
 
-        if (!product) {
+        if (!productCheck) {
             return res.status(404).json({
                 success: false,
-                message: 'Product not found'
+                message: `Product with ID ${id} not found in database.`
             });
         }
+
+        // 2. Check ownership
+        if (productCheck.merchant.toString() !== merchantId.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: `Access denied. You do not own this product. (Your ID: ${merchantId}, Product Owner: ${productCheck.merchant})`
+            });
+        }
+
+        const product = await Product.findByIdAndDelete(id);
 
         // Delete images from Cloudinary
         if (product.images && product.images.length > 0) {
@@ -190,14 +306,23 @@ exports.updateStock = async (req, res) => {
     try {
         const { id } = req.params;
         const { stock } = req.body;
-        const merchantId = req.user.id;
+        const merchantId = req.user._id;
 
-        const product = await Product.findOne({ _id: id, merchant: merchantId });
+        // 1. Check if product exists at all
+        const product = await Product.findById(id);
 
         if (!product) {
             return res.status(404).json({
                 success: false,
-                message: 'Product not found'
+                message: `Product with ID ${id} not found in database.`
+            });
+        }
+
+        // 2. Check ownership
+        if (product.merchant.toString() !== merchantId.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: `Access denied. You do not own this product. (Your ID: ${merchantId}, Product Owner: ${product.merchant})`
             });
         }
 
@@ -229,7 +354,7 @@ exports.updateStock = async (req, res) => {
 // Get My Products (Merchant)
 exports.getMyProducts = async (req, res) => {
     try {
-        const merchantId = req.user.id;
+        const merchantId = req.user._id;
         const { page = 1, limit = 12, status } = req.query;
 
         const query = { merchant: merchantId };

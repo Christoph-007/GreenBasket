@@ -189,7 +189,7 @@ genhtml coverage/lcov.info -o coverage/html
 - CartBloc with add/update/remove/coupon
 - Cart screen with price summary
 - Multi-step checkout (address, slot, payment, review)
-- Razorpay integration
+- Stripe PaymentSheet integration (`flutter_stripe`)
 - Order Success screen
 - **Milestone**: Place an order end-to-end
 

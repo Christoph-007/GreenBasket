@@ -450,9 +450,9 @@ if (require.main === module) {
     require('./src/utils/cronJobs')();
     require('./src/cron/reminderCron')();
 
-    server.listen(PORT, () => {
+    server.listen(PORT, '0.0.0.0', () => {
         console.log('='.repeat(50));
-        console.log(`🚀 Server running on port ${PORT}`);
+        console.log(`🚀 Server running on port ${PORT} (0.0.0.0)`);
         console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
         console.log(`📡 API: http://localhost:${PORT}/api`);
         console.log('='.repeat(50));

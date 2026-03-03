@@ -8,8 +8,8 @@ router.use(authenticate);
 router.post('/', subscriptionController.createSubscription);
 router.get('/', subscriptionController.getMySubscriptions);
 router.get('/:id', subscriptionController.getSubscriptionById);
-router.put('/:id', restrictTo('user'), subscriptionController.updateSubscription);
-router.delete('/:id', restrictTo('user'), subscriptionController.deleteSubscription);
+router.put('/:id', subscriptionController.updateSubscription);
+router.delete('/:id', subscriptionController.deleteSubscription);
 router.patch('/:id/status', subscriptionController.updateSubscriptionStatus);
 
 // Merchant routes

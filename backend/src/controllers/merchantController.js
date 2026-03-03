@@ -3,6 +3,39 @@ const Order = require('../models/Order');
 const Product = require('../models/Product');
 const mongoose = require('mongoose');
 
+exports.uploadImage = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'No image uploaded' });
+        }
+
+        const { imageType } = req.body; // 'logo' or 'cover'
+        const imageUrl = req.file.path;
+
+        const updateData = {};
+        if (imageType === 'logo') {
+            updateData.profileImage = imageUrl;
+        } else if (imageType === 'cover') {
+            updateData.farmImages = [imageUrl];
+        }
+
+        const merchant = await Merchant.findByIdAndUpdate(
+            req.user.id,
+            updateData,
+            { new: true }
+        );
+
+        res.json({
+            success: true,
+            message: 'Image uploaded successfully',
+            imageUrl: imageUrl,
+            data: merchant
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Error uploading image', error: error.message });
+    }
+};
+
 exports.getProfile = async (req, res) => {
     try {
         const merchant = await Merchant.findById(req.user.id);
@@ -21,18 +54,30 @@ exports.getProfile = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
     try {
-        const {
+        let {
             businessName, businessDescription, address,
+            phone, email, gstNumber,
             operatingHours, deliveryRadius, minimumOrderValue,
-            deliveryCharges, bankDetails
+            deliveryCharges, bankDetails, sellingModel, allowsSubscriptions
         } = req.body;
+
+        // If address is a string (from frontend text field), convert to object format
+        if (typeof address === 'string') {
+            address = {
+                street: address,
+                city: '',
+                state: '',
+                pincode: ''
+            };
+        }
 
         const merchant = await Merchant.findByIdAndUpdate(
             req.user.id,
             {
                 businessName, businessDescription, address,
                 operatingHours, deliveryRadius, minimumOrderValue,
-                deliveryCharges, bankDetails
+                deliveryCharges, bankDetails, phone, email, gstNumber,
+                sellingModel, allowsSubscriptions
             },
             { new: true, runValidators: true }
         );
@@ -60,7 +105,8 @@ exports.toggleStoreStatus = async (req, res) => {
         res.json({
             success: true,
             message: `Store is now ${merchant.isStoreOpen ? 'Open' : 'Closed'}`,
-            isStoreOpen: merchant.isStoreOpen
+            isStoreOpen: merchant.isStoreOpen,
+            data: merchant
         });
     } catch (error) {
         res.status(500).json({
@@ -74,24 +120,81 @@ exports.toggleStoreStatus = async (req, res) => {
 exports.getDashboardStats = async (req, res) => {
     try {
         const merchantId = req.user.id;
+        const objectId = new mongoose.Types.ObjectId(merchantId);
 
-        const [totalOrders, totalRevenueData, lowStockProducts] = await Promise.all([
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+
+        const [
+            totalOrders,
+            totalProducts,
+            activeProducts,
+            lowStockProducts,
+            orderStatsRaw,
+            todayStatsRaw
+        ] = await Promise.all([
             Order.countDocuments({ merchant: merchantId }),
+            Product.countDocuments({ merchant: merchantId }),
+            Product.countDocuments({ merchant: merchantId, isActive: true }),
+            Product.countDocuments({ merchant: merchantId, stock: { $lte: 10 } }),
             Order.aggregate([
-                { $match: { merchant: new mongoose.Types.ObjectId(merchantId), status: 'delivered' } },
-                { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+                { $match: { merchant: objectId } },
+                {
+                    $group: {
+                        _id: '$status',
+                        count: { $sum: 1 },
+                        revenue: {
+                            $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, '$totalAmount', 0] }
+                        }
+                    }
+                }
             ]),
-            Product.countDocuments({ merchant: merchantId, stock: { $lte: 10 } }) // Assuming 10 is low stock
+            Order.aggregate([
+                { $match: { merchant: objectId, createdAt: { $gte: todayStart } } },
+                {
+                    $group: {
+                        _id: null,
+                        todayOrders: { $sum: 1 },
+                        todayRevenue: {
+                            $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, '$totalAmount', 0] }
+                        }
+                    }
+                }
+            ])
         ]);
 
-        const totalRevenue = totalRevenueData.length > 0 ? totalRevenueData[0].total : 0;
+        const orderStats = orderStatsRaw.reduce((acc, curr) => {
+            if (curr._id === 'pending') acc.pending += curr.count;
+            else if (curr._id === 'confirmed') acc.confirmed += curr.count;
+            else if (curr._id === 'ready') acc.processing += curr.count;
+            else if (curr._id === 'out-for-delivery') acc.shipped += curr.count;
+            else if (curr._id === 'delivered') { acc.delivered += curr.count; acc.totalRevenue = curr.revenue; }
+            else if (curr._id === 'cancelled' || curr._id === 'refunded') acc.cancelled += curr.count;
+            return acc;
+        }, {
+            pending: 0, confirmed: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0, totalRevenue: 0
+        });
+
+        const todayStats = todayStatsRaw[0] || { todayOrders: 0, todayRevenue: 0 };
+        const averageOrderValue = totalOrders > 0 ? (orderStats.totalRevenue / totalOrders) : 0;
 
         res.json({
             success: true,
             data: {
                 totalOrders,
-                totalRevenue,
-                lowStockProducts
+                totalProducts,
+                activeProducts,
+                lowStockProducts,
+                totalRevenue: orderStats.totalRevenue,
+                todayOrders: todayStats.todayOrders,
+                todayRevenue: todayStats.todayRevenue,
+                averageOrderValue,
+                pendingOrders: orderStats.pending || 0,
+                confirmedOrders: orderStats.confirmed || 0,
+                processingOrders: orderStats.processing || 0,
+                shippedOrders: orderStats.shipped || 0,
+                deliveredOrders: orderStats.delivered || 0,
+                cancelledOrders: orderStats.cancelled || 0
             }
         });
     } catch (error) {
@@ -105,10 +208,17 @@ exports.getDashboardStats = async (req, res) => {
 
 exports.getAllMerchants = async (req, res) => {
     try {
-        const { page = 1, limit = 20, status, search } = req.query;
+        console.log('--- GET ALL MERCHANTS QUERY ---', req.query);
+        const { page = 1, limit = 20, status, search, sellingModel, merchantType } = req.query;
         let query = {};
 
         if (status) query.verificationStatus = status;
+        if (sellingModel) {
+            query.sellingModel = { $in: [sellingModel, 'both'] };
+        }
+        if (merchantType) {
+            query.merchantType = merchantType;
+        }
         if (search) {
             query.$or = [
                 { businessName: { $regex: search, $options: 'i' } },
@@ -138,6 +248,88 @@ exports.getAllMerchants = async (req, res) => {
                     pages: Math.ceil(total / limit)
                 }
             }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+/**
+ * @desc    Update password
+ * @route   PATCH /api/merchants/update-password
+ * @access  Private
+ */
+exports.updatePassword = async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+
+        const merchant = await Merchant.findById(req.user.id).select('+password');
+
+        if (!merchant || !(await merchant.comparePassword(currentPassword))) {
+            return res.status(401).json({
+                success: false,
+                message: 'Incorrect current password'
+            });
+        }
+
+        merchant.password = newPassword;
+        await merchant.save();
+
+        res.json({
+            success: true,
+            message: 'Password updated successfully'
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error updating password',
+            error: error.message
+        });
+    }
+};
+
+/**
+ * @desc    Update notification settings
+ * @route   PATCH /api/merchants/notification-settings
+ * @access  Private
+ */
+exports.updateNotificationSettings = async (req, res) => {
+    try {
+        const { email, sms, newOrders, lowStock } = req.body;
+
+        const merchant = await Merchant.findByIdAndUpdate(
+            req.user.id,
+            {
+                $set: {
+                    notificationSettings: { email, sms, newOrders, lowStock }
+                }
+            },
+            { new: true }
+        );
+
+        res.json({
+            success: true,
+            message: 'Notification settings updated',
+            data: merchant.notificationSettings
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error updating notification settings',
+            error: error.message
+        });
+    }
+};
+
+exports.getMerchantById = async (req, res) => {
+    try {
+        const merchant = await Merchant.findById(req.params.id).select('-password -bankDetails');
+        if (!merchant) {
+            return res.status(404).json({ success: false, message: 'Merchant not found' });
+        }
+        res.json({
+            success: true,
+            data: merchant
         });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });

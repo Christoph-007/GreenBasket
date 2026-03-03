@@ -18,7 +18,7 @@
 | DI | **get_it** + **injectable** | get_it ^7.6, injectable ^2.4 |
 | Image Cache | **cached_network_image** | ^3.3 |
 | Notifications | **firebase_messaging** | ^15.0 |
-| Payments | **razorpay_flutter** | ^1.3 |
+| Payments | **flutter_stripe** | ^10.1 |
 | Animations | **lottie** | ^3.1 |
 
 ### Key Features (Consumer App — Phase 1)
@@ -251,7 +251,8 @@ dependencies:
   firebase_messaging: ^15.0.4
 
   # Payments
-  razorpay_flutter: ^1.3.7
+  flutter_stripe: ^10.1.1
+  flutter_stripe_android: ^10.1.1
 
   # Utilities
   intl: ^0.19.0

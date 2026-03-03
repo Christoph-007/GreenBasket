@@ -11,4 +11,7 @@ router.get('/my-reviews', protect, restrictTo('user'), reviewController.getMyRev
 router.put('/:id', protect, restrictTo('user'), reviewController.updateReview);
 router.delete('/:id', protect, restrictTo('user', 'admin'), reviewController.deleteReview);
 
+// Merchant reply to a review
+router.post('/:id/reply', protect, restrictTo('merchant'), reviewController.replyToReview);
+
 module.exports = router;

@@ -208,48 +208,41 @@ if (error is UnauthorizedException) {
 
 ## 4. Payment Security
 
-### 4.1 Razorpay Integration
-- [ ] Razorpay SDK up to date
-- [ ] Payment verification on backend
+### 4.1 Stripe Integration
+- [ ] `flutter_stripe` SDK up to date
+- [ ] Payment verification on backend (via Stripe webhook or PaymentIntent status)
 - [ ] No payment details stored locally
-- [ ] Payment signature verified
+- [ ] PaymentIntent client secret never logged
 - [ ] Failed payments logged
-- [ ] Refund flow secured
+- [ ] Refund flow secured via backend
 
 **Secure Payment Flow**:
 ```dart
 Future<void> initiatePayment(String orderId, double amount) async {
-  // 1. Create order on backend (get Razorpay order ID)
-  final razorpayOrder = await paymentApi.createRazorpayOrder(orderId, amount);
+  // 1. Create PaymentIntent on backend
+  final intent = await paymentApi.createPaymentIntent(orderId, amount);
 
-  // 2. Open Razorpay checkout
-  final options = {
-    'key': AppConfig.razorpayKey, // From environment
-    'amount': (amount * 100).toInt(), // Paise
-    'order_id': razorpayOrder.id,
-    'name': 'GreenBasket',
-    'prefill': {
-      'contact': user.phone,
-      'email': user.email,
-    },
-  };
+  // 2. Initialize Stripe PaymentSheet
+  await Stripe.instance.initPaymentSheet(
+    paymentSheetParameters: SetupPaymentSheetParameters(
+      paymentIntentClientSecret: intent.clientSecret,
+      merchantDisplayName: 'GreenBasket',
+      style: ThemeMode.system,
+    ),
+  );
 
-  _razorpay.open(options);
-}
+  // 3. Present PaymentSheet (Stripe handles card entry securely)
+  await Stripe.instance.presentPaymentSheet();
 
-void _handlePaymentSuccess(PaymentSuccessResponse response) async {
-  // 3. Verify signature on backend (CRITICAL)
+  // 4. Verify on backend (CRITICAL — confirm PaymentIntent status)
   final verified = await paymentApi.verifyPayment(
-    paymentId: response.paymentId,
-    orderId: response.orderId,
-    signature: response.signature,
+    paymentIntentId: intent.paymentIntentId,
+    orderId: orderId,
   );
 
   if (verified) {
-    // Payment confirmed
     navigateToOrderSuccess();
   } else {
-    // Signature mismatch - fraud attempt
     showError('Payment verification failed');
   }
 }
@@ -313,7 +306,7 @@ Future<bool> requestCameraPermission() async {
 
 ### 5.3 Third-Party Services
 - [ ] Firebase privacy policy disclosed
-- [ ] Razorpay privacy policy disclosed
+- [ ] Stripe privacy policy disclosed
 - [ ] Google Sign-In privacy disclosed
 - [ ] Analytics tracking disclosed
 - [ ] Crash reporting disclosed
@@ -623,6 +616,6 @@ dart analyze --fatal-infos
 
 - [OWASP Mobile Top 10](https://owasp.org/www-project-mobile-top-10/)
 - [Flutter Security Best Practices](https://docs.flutter.dev/security)
-- [Razorpay Security](https://razorpay.com/docs/payments/security/)
+- [Stripe Security](https://stripe.com/docs/security)
 - [Firebase Security Rules](https://firebase.google.com/docs/rules)
 - [GDPR Compliance](https://gdpr.eu/)

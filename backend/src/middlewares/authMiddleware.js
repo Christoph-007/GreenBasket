@@ -124,5 +124,40 @@ exports.restrictTo = (...roles) => {
     };
 };
 
+// Optional authentication - doesn't fail if no token
+exports.optionalAuthenticate = async (req, res, next) => {
+    try {
+        let token;
+        if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+            token = req.headers.authorization.split(' ')[1];
+        }
+
+        if (!token) {
+            return next();
+        }
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        let user;
+        if (decoded.userType === 'user') {
+            user = await User.findById(decoded.id);
+        } else if (decoded.userType === 'merchant') {
+            user = await Merchant.findById(decoded.id);
+        } else if (decoded.userType === 'admin') {
+            user = await Admin.findById(decoded.id);
+        }
+
+        if (user && !user.isBlocked) {
+            req.user = user;
+            req.userType = decoded.userType;
+        }
+
+        next();
+    } catch (error) {
+        // If token is invalid, just proceed as unauthenticated
+        next();
+    }
+};
+
 // Alias for authenticate (commonly used as 'protect')
 exports.protect = exports.authenticate;

@@ -222,13 +222,18 @@ exports.updateSubscription = async (req, res) => {
     try {
         const { frequency, deliveryAddress, items, deliveryTime } = req.body;
 
-        const subscription = await Subscription.findOne({
-            _id: req.params.id,
-            user: req.user._id
-        });
+        const subscription = await Subscription.findById(req.params.id);
 
         if (!subscription) {
-            return res.status(404).json({ success: false, error: 'Subscription not found or access denied' });
+            return res.status(404).json({ success: false, error: 'Subscription not found' });
+        }
+
+        // Robust ownership check: converting both to strings
+        const ownerId = subscription.user.toString();
+        const currentUserId = req.user.id.toString();
+
+        if (ownerId !== currentUserId && req.userType !== 'admin') {
+            return res.status(403).json({ success: false, error: 'Access denied. You do not own this subscription.' });
         }
 
         if (subscription.status === 'cancelled') {
@@ -272,7 +277,7 @@ exports.updateSubscription = async (req, res) => {
             subscription.items = items.map(i => ({
                 product: i.productId,
                 quantity: i.quantity,
-                preparationType: i.preparationType
+                preparation: i.preparationType || i.preparation
             }));
         }
 
@@ -297,7 +302,7 @@ exports.deleteSubscription = async (req, res) => {
     try {
         const subscription = await Subscription.findOne({
             _id: req.params.id,
-            user: req.user._id
+            user: req.user.id
         });
 
         if (!subscription) {

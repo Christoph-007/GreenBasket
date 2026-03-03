@@ -44,7 +44,8 @@ const testProduct = {
     price: 150,
     stock: 50,
     unit: 'kg',
-    images: ['https://example.com/apple.jpg'],
+    images: [{ url: 'https://example.com/apple.jpg', publicId: 'apple_001' }],
+    primaryImage: 'https://example.com/apple.jpg',
     category: '', // filled later
     merchant: '' // filled later
 };
@@ -133,13 +134,14 @@ describe('Backend Comprehensive Audit Tests', () => {
             if (res.statusCode !== 200) console.log('Products Error:', res.body);
             expect(res.statusCode).toEqual(200);
             expect(res.body.success).toBe(true);
-            expect(res.body.count).toBeGreaterThan(0);
+            expect(res.body.data.products.length).toBeGreaterThan(0);
         });
 
         it('should get a single product by ID', async () => {
             const res = await request(app).get(`/api/products/${productId}`);
+            if (res.statusCode !== 200) console.log('Get Product Error:', res.body);
             expect(res.statusCode).toEqual(200);
-            expect(res.body.data.name).toBe(testProduct.name);
+            expect(res.body.data.product.name).toBe(testProduct.name);
         });
     });
 
@@ -162,8 +164,11 @@ describe('Backend Comprehensive Audit Tests', () => {
             }
             expect(res.statusCode).toEqual(200);
             expect(res.body.success).toBe(true);
-            // Verify cart structure
-            const cartItem = res.body.data.cart.items.find(item => item.product.toString() === productId);
+            // Verify cart structure (product may be populated object or plain ID)
+            const cartItem = res.body.data.cart.items.find(item => {
+                const id = item.product?._id || item.product;
+                return id?.toString() === productId;
+            });
             expect(cartItem).toBeTruthy();
             expect(cartItem.quantity).toBe(2);
         });
@@ -184,7 +189,11 @@ describe('Backend Comprehensive Audit Tests', () => {
                 .send({ quantity: 5 });
 
             expect(res.statusCode).toEqual(200);
-            const cartItem = res.body.data.cart.items.find(item => item.product.toString() === productId);
+            const cartItem = res.body.data.cart.items.find(item => {
+                const id = item.product?._id || item.product;
+                return id?.toString() === productId;
+            });
+            expect(cartItem).toBeTruthy();
             expect(cartItem.quantity).toBe(5);
         });
     });
@@ -214,13 +223,11 @@ describe('Backend Comprehensive Audit Tests', () => {
     // 5. Search
     describe('Search Module', () => {
         it('should search for products', async () => {
-            // Re-index might be needed for text search in real mongo, but basic regex should work if implemented
+            // Uses ?q= param per the searchProducts controller
             const res = await request(app)
-                .get('/api/products/search?keyword=Apple');
+                .get('/api/products/search?q=Apple');
 
-            // Search implementation might vary (regex vs text index). 
-            // If strictly text index, MemoryServer might not fully support it efficiently or requires index creation.
-            // Let's assume regex for now or skip if status is 200 but empty.
+            // Text index may not be available in memory server, but route should respond 200
             expect(res.statusCode).toEqual(200);
         });
     });

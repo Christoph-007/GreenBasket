@@ -1,6 +1,6 @@
 {
   "info": {
-    "name": "Green Basket API Backup Test",
+    "name": "Green Basket API - Full Audit v3",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -29,7 +29,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "auth",
                 "user",
@@ -38,7 +37,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"name\": \"Test User\",\n    \"email\": \"user@example.com\",\n    \"phone\": \"1234567890\",\n    \"password\": \"password123\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -69,7 +68,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "auth",
                 "user",
@@ -78,7 +76,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"email\": \"user@example.com\",\n    \"password\": \"password123\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -109,7 +107,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "auth",
                 "user",
@@ -118,7 +115,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"token\": \"{{verification_token}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -149,7 +146,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "auth",
                 "user",
@@ -158,7 +154,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"email\": \"user@example.com\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -189,7 +185,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "auth",
                 "user",
@@ -198,7 +193,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"token\": \"{{reset_token}}\",\n    \"newPassword\": \"newpassword123\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -229,7 +224,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "auth",
                 "merchant",
@@ -238,7 +232,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"name\": \"Merchant One\",\n    \"email\": \"merchant@example.com\",\n    \"phone\": \"9876543210\",\n    \"password\": \"password123\",\n    \"businessName\": \"Fresh Greens\",\n    \"merchantType\": \"farmer\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -269,7 +263,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "auth",
                 "merchant",
@@ -278,7 +271,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"email\": \"merchant@example.com\",\n    \"password\": \"password123\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -309,7 +302,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "auth",
                 "admin",
@@ -318,7 +310,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"email\": \"admin@greenbasket.com\",\n    \"password\": \"adminpassword\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -349,7 +341,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "auth",
                 "refresh-token"
@@ -357,7 +348,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -388,7 +379,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "auth",
                 "logout"
@@ -396,7 +386,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -432,7 +422,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "products"
               ]
@@ -461,7 +450,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "products",
                 "search"
@@ -491,7 +479,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "products",
                 "{{id}}"
@@ -521,14 +508,13 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "products"
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"name\": \"Organic Tomatoes\",\n    \"description\": \"Fresh farm tomatoes\",\n    \"price\": 80,\n    \"stock\": 100,\n    \"unit\": \"kg\",\n    \"category\": \"{{category_id}}\",\n    \"tags\": [\n        \"organic\",\n        \"farm-fresh\"\n    ],\n    \"primaryImage\": \"https://example.com/tomato.jpg\",\n    \"nutritionalInfo\": {\n        \"calories\": 18,\n        \"protein\": 0.9,\n        \"fat\": 0.2,\n        \"carbohydrates\": 3.9\n    }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -559,7 +545,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "products",
                 "{{id}}"
@@ -567,7 +552,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -598,7 +583,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "products",
                 "{{id}}"
@@ -628,7 +612,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "products",
                 "{{id}}",
@@ -637,7 +620,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"stock\": 150\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -668,7 +651,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "products",
                 "merchant",
@@ -704,7 +686,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "categories"
               ]
@@ -733,7 +714,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "categories",
                 "{{id}}"
@@ -763,14 +743,13 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "categories"
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"name\": \"Organic Tomatoes\",\n    \"description\": \"Fresh farm tomatoes\",\n    \"price\": 80,\n    \"stock\": 100,\n    \"unit\": \"kg\",\n    \"category\": \"{{category_id}}\",\n    \"tags\": [\n        \"organic\",\n        \"farm-fresh\"\n    ],\n    \"primaryImage\": \"https://example.com/tomato.jpg\",\n    \"nutritionalInfo\": {\n        \"calories\": 18,\n        \"protein\": 0.9,\n        \"fat\": 0.2,\n        \"carbohydrates\": 3.9\n    }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -801,7 +780,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "categories",
                 "{{id}}"
@@ -809,7 +787,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -840,7 +818,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "categories",
                 "{{id}}"
@@ -875,7 +852,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "cart"
               ]
@@ -904,7 +880,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "cart",
                 "add"
@@ -912,7 +887,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"productId\": \"{{product_id}}\",\n    \"quantity\": 2,\n    \"preparation\": \"cut\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -943,7 +918,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "cart",
                 "update",
@@ -952,7 +926,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"quantity\": 5\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -983,7 +957,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "cart",
                 "remove",
@@ -1014,7 +987,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "cart",
                 "clear"
@@ -1044,7 +1016,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "cart",
                 "recipe-to-cart"
@@ -1052,7 +1023,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1088,14 +1059,13 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "orders"
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"name\": \"Organic Tomatoes\",\n    \"description\": \"Fresh farm tomatoes\",\n    \"price\": 80,\n    \"stock\": 100,\n    \"unit\": \"kg\",\n    \"category\": \"{{category_id}}\",\n    \"tags\": [\n        \"organic\",\n        \"farm-fresh\"\n    ],\n    \"primaryImage\": \"https://example.com/tomato.jpg\",\n    \"nutritionalInfo\": {\n        \"calories\": 18,\n        \"protein\": 0.9,\n        \"fat\": 0.2,\n        \"carbohydrates\": 3.9\n    }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1126,7 +1096,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "orders",
                 "my-orders"
@@ -1156,7 +1125,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "orders",
                 "{{id}}"
@@ -1186,7 +1154,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "orders",
                 "{{id}}",
@@ -1195,7 +1162,106 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "trackOrder",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/orders/:id/track",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{id}}",
+                "track"
+              ]
+            }
+          }
+        },
+        {
+          "name": "getOrderTracking",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/orders/:orderId/tracking",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderId}}",
+                "tracking"
+              ]
+            }
+          }
+        },
+        {
+          "name": "updateLocation",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/orders/:id/location",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{id}}",
+                "location"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"latitude\": 12.9716,\n    \"longitude\": 77.5946\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1226,7 +1292,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "orders",
                 "merchant",
@@ -1257,7 +1322,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "orders",
                 "merchant",
@@ -1267,47 +1331,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "updateLocation",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}",
-                "type": "text"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/orders/:id/location",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "",
-                "api",
-                "orders",
-                "{{id}}",
-                "location"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"status\": \"confirmed\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1343,7 +1367,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "recipes"
               ]
@@ -1372,7 +1395,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "recipes",
                 "search"
@@ -1402,7 +1424,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "recipes",
                 "{{id}}"
@@ -1432,7 +1453,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "recipes",
                 "{{id}}",
@@ -1441,7 +1461,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1472,14 +1492,13 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "recipes"
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"name\": \"Organic Tomatoes\",\n    \"description\": \"Fresh farm tomatoes\",\n    \"price\": 80,\n    \"stock\": 100,\n    \"unit\": \"kg\",\n    \"category\": \"{{category_id}}\",\n    \"tags\": [\n        \"organic\",\n        \"farm-fresh\"\n    ],\n    \"primaryImage\": \"https://example.com/tomato.jpg\",\n    \"nutritionalInfo\": {\n        \"calories\": 18,\n        \"protein\": 0.9,\n        \"fat\": 0.2,\n        \"carbohydrates\": 3.9\n    }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1510,7 +1529,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "recipes",
                 "{{id}}"
@@ -1518,7 +1536,45 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "patchUpdate",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/recipes/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "recipes",
+                "{{id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1549,7 +1605,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "recipes",
                 "{{id}}"
@@ -1584,7 +1639,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "reviews",
                 "product",
@@ -1615,12 +1669,115 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "reviews",
                 "merchant",
                 "{{merchantId}}"
               ]
+            }
+          }
+        },
+        {
+          "name": "addReview",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/reviews",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reviews"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"productId\": \"{{product_id}}\",\n    \"rating\": 5,\n    \"comment\": \"Excellent quality!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "getMyReviews",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/reviews/my-reviews",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reviews",
+                "my-reviews"
+              ]
+            }
+          }
+        },
+        {
+          "name": "updateReview",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/reviews/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reviews",
+                "{{id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"rating\": 4,\n    \"comment\": \"Good, but could be better.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         },
@@ -1646,7 +1803,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "reviews",
                 "{{id}}"
@@ -1681,14 +1837,13 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "subscriptions"
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"name\": \"Organic Tomatoes\",\n    \"description\": \"Fresh farm tomatoes\",\n    \"price\": 80,\n    \"stock\": 100,\n    \"unit\": \"kg\",\n    \"category\": \"{{category_id}}\",\n    \"tags\": [\n        \"organic\",\n        \"farm-fresh\"\n    ],\n    \"primaryImage\": \"https://example.com/tomato.jpg\",\n    \"nutritionalInfo\": {\n        \"calories\": 18,\n        \"protein\": 0.9,\n        \"fat\": 0.2,\n        \"carbohydrates\": 3.9\n    }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1719,9 +1874,104 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "subscriptions"
+              ]
+            }
+          }
+        },
+        {
+          "name": "getById",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/subscriptions/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "subscriptions",
+                "{{id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/subscriptions/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "subscriptions",
+                "{{id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "delete",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/subscriptions/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "subscriptions",
+                "{{id}}"
               ]
             }
           }
@@ -1748,7 +1998,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "subscriptions",
                 "{{id}}",
@@ -1757,12 +2006,42 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"status\": \"confirmed\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
+            }
+          }
+        },
+        {
+          "name": "getMerchantAll",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/subscriptions/merchant/all",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "subscriptions",
+                "merchant",
+                "all"
+              ]
             }
           }
         }
@@ -1793,7 +2072,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "users",
                 "profile"
@@ -1823,7 +2101,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "users",
                 "profile"
@@ -1831,7 +2108,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"name\": \"John Doe Updated\",\n    \"phone\": \"1234567891\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1862,7 +2139,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "users",
                 "addresses"
@@ -1892,7 +2168,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "users",
                 "addresses"
@@ -1900,7 +2175,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"label\": \"home\",\n    \"name\": \"John Doe\",\n    \"phone\": \"1234567890\",\n    \"addressLine1\": \"123 Green St\",\n    \"city\": \"Eco City\",\n    \"state\": \"Nature\",\n    \"pincode\": \"123456\",\n    \"isDefault\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1931,7 +2206,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "users",
                 "addresses",
@@ -1940,7 +2214,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1971,7 +2245,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "users",
                 "addresses",
@@ -1981,7 +2254,7 @@
           }
         },
         {
-          "name": "getNotificationPreferences",
+          "name": "getNotificationPrefs",
           "request": {
             "method": "GET",
             "header": [
@@ -2002,7 +2275,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "users",
                 "notification-preferences"
@@ -2011,7 +2283,7 @@
           }
         },
         {
-          "name": "updateNotificationPreferences",
+          "name": "updateNotificationPrefs",
           "request": {
             "method": "PUT",
             "header": [
@@ -2032,7 +2304,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "users",
                 "notification-preferences"
@@ -2040,7 +2311,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"email\": {\n        \"orderUpdates\": true,\n        \"offers\": false\n    },\n    \"push\": {\n        \"orderUpdates\": true,\n        \"offers\": true\n    }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2071,7 +2342,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "users",
                 "fcm-token"
@@ -2079,7 +2349,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2110,7 +2380,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "users",
                 "fcm-token"
@@ -2145,7 +2414,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "merchants",
                 "profile"
@@ -2175,7 +2443,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "merchants",
                 "profile"
@@ -2183,7 +2450,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"name\": \"John Doe Updated\",\n    \"phone\": \"1234567891\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2214,7 +2481,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "merchants",
                 "toggle-store"
@@ -2222,7 +2488,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2253,7 +2519,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "merchants",
                 "dashboard-stats"
@@ -2288,7 +2553,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "admin",
                 "merchants",
@@ -2319,7 +2583,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "admin",
                 "merchants",
@@ -2329,12 +2592,42 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"status\": \"approved\",\n    \"rejectionReason\": \"\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
+            }
+          }
+        },
+        {
+          "name": "getAllMerchants",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/merchants/all",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "merchants",
+                "all"
+              ]
             }
           }
         },
@@ -2360,7 +2653,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "admin",
                 "users"
@@ -2390,7 +2682,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "admin",
                 "users",
@@ -2400,7 +2691,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2431,10 +2722,68 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "admin",
                 "stats"
+              ]
+            }
+          }
+        },
+        {
+          "name": "getAllSubscriptions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/subscriptions/all",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "subscriptions",
+                "all"
+              ]
+            }
+          }
+        },
+        {
+          "name": "getAllAssignments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/assignments",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "assignments"
               ]
             }
           }
@@ -2466,7 +2815,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "upload",
                 "image"
@@ -2474,7 +2822,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2505,7 +2853,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "upload",
                 "images"
@@ -2513,7 +2860,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2544,7 +2891,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "upload",
                 "document"
@@ -2552,7 +2898,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2583,7 +2929,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "upload",
                 "my-uploads"
@@ -2613,7 +2958,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "upload",
                 "{{uploadId}}"
@@ -2643,7 +2987,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "upload",
                 "{{uploadId}}"
@@ -2673,7 +3016,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "upload",
                 "bulk-delete"
@@ -2681,7 +3023,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2712,7 +3054,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "upload",
                 "products",
@@ -2722,7 +3063,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2758,7 +3099,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "payment",
                 "create-order"
@@ -2766,7 +3106,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"addressId\": \"{{address_id}}\",\n    \"paymentMethod\": \"stripe\",\n    \"deliverySlot\": {\n        \"date\": \"2026-02-25\",\n        \"startTime\": \"09:00\",\n        \"endTime\": \"11:00\"\n    }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2797,7 +3137,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "payment",
                 "verify"
@@ -2805,7 +3144,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2836,7 +3175,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "payment",
                 "refund"
@@ -2844,7 +3182,134 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "getMethods",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/payment/methods",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "payment",
+                "methods"
+              ]
+            }
+          }
+        },
+        {
+          "name": "getHistory",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/payment/history",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "payment",
+                "history"
+              ]
+            }
+          }
+        },
+        {
+          "name": "getStatus",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/payment/:orderId/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "payment",
+                "{{orderId}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "retryPayment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/payment/:orderId/retry",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "payment",
+                "{{orderId}}",
+                "retry"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2880,7 +3345,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "notifications"
               ]
@@ -2909,7 +3373,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "notifications",
                 "unread-count"
@@ -2939,7 +3402,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "notifications",
                 "{{id}}",
@@ -2948,7 +3410,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2979,7 +3441,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "notifications",
                 "read-all"
@@ -2987,7 +3448,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3018,7 +3479,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "notifications",
                 "{{id}}"
@@ -3048,91 +3508,10 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "notifications",
                 "clear-all"
               ]
-            }
-          }
-        },
-        {
-          "name": "sendTest",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}",
-                "type": "text"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/notifications/admin/test",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "",
-                "api",
-                "notifications",
-                "admin",
-                "test"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "bulkSend",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}",
-                "type": "text"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/notifications/admin/bulk-send",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "",
-                "api",
-                "notifications",
-                "admin",
-                "bulk-send"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
             }
           }
         }
@@ -3163,7 +3542,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "wishlist"
               ]
@@ -3192,7 +3570,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "wishlist",
                 "add"
@@ -3200,7 +3577,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3231,7 +3608,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "wishlist",
                 "remove",
@@ -3262,7 +3638,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "wishlist",
                 "move-to-cart",
@@ -3271,7 +3646,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3302,7 +3677,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "wishlist",
                 "check",
@@ -3338,7 +3712,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "wallet"
               ]
@@ -3367,7 +3740,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "wallet",
                 "transactions"
@@ -3397,7 +3769,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "wallet",
                 "add-money"
@@ -3405,7 +3776,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"amount\": 1000\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3436,7 +3807,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "wallet",
                 "verify-topup"
@@ -3444,7 +3814,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3475,7 +3845,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "wallet",
                 "use-for-payment"
@@ -3483,7 +3852,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3514,7 +3883,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "wallet",
                 "admin",
@@ -3523,7 +3891,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"userId\": \"{{user_id}}\",\n    \"amount\": 500,\n    \"reason\": \"Customer Satisfaction\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3554,7 +3922,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "wallet",
                 "admin",
@@ -3564,7 +3931,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3595,7 +3962,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "wallet",
                 "credit-refund"
@@ -3603,7 +3969,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3639,7 +4005,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "loyalty",
                 "redeem"
@@ -3647,7 +4012,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3678,7 +4043,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "loyalty",
                 "history"
@@ -3708,7 +4072,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "loyalty",
                 "benefits"
@@ -3738,7 +4101,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "loyalty",
                 "award"
@@ -3746,7 +4108,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"userId\": \"{{user_id}}\",\n    \"points\": 100,\n    \"reason\": \"Promotional event\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3782,7 +4144,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "referral",
                 "generate"
@@ -3790,7 +4151,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3821,7 +4182,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "referral",
                 "stats"
@@ -3851,7 +4211,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "referral",
                 "apply"
@@ -3859,7 +4218,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3890,7 +4249,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "referral",
                 "validate",
@@ -3921,7 +4279,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "referral",
                 "process-reward"
@@ -3929,7 +4286,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3943,74 +4300,6 @@
     {
       "name": "Offers",
       "item": [
-        {
-          "name": "createOffer",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}",
-                "type": "text"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/offers",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "",
-                "api",
-                "offers"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "getMerchantOffers",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}",
-                "type": "text"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/offers/merchant",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "",
-                "api",
-                "offers",
-                "merchant"
-              ]
-            }
-          }
-        },
         {
           "name": "getAvailableOffers",
           "request": {
@@ -4033,7 +4322,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "offers",
                 "available"
@@ -4063,7 +4351,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "offers",
                 "cart",
@@ -4072,7 +4359,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"code\": \"FRESH20\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -4103,12 +4390,106 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "offers",
                 "cart",
                 "remove-coupon"
               ]
+            }
+          }
+        },
+        {
+          "name": "getFlashSales",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/offers/flash-sales",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "offers",
+                "flash-sales"
+              ]
+            }
+          }
+        },
+        {
+          "name": "getMerchantOffers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/offers/merchant",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "offers",
+                "merchant"
+              ]
+            }
+          }
+        },
+        {
+          "name": "createOffer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/offers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "offers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         },
@@ -4134,7 +4515,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "offers",
                 "{{id}}"
@@ -4142,7 +4522,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -4173,7 +4553,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "offers",
                 "{{id}}"
@@ -4182,7 +4561,7 @@
           }
         },
         {
-          "name": "getOfferAnalytics",
+          "name": "getAnalytics",
           "request": {
             "method": "GET",
             "header": [
@@ -4203,7 +4582,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "offers",
                 "{{id}}",
@@ -4213,37 +4591,7 @@
           }
         },
         {
-          "name": "getFlashSales",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}",
-                "type": "text"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/offers/flash-sales",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "",
-                "api",
-                "offers",
-                "flash-sales"
-              ]
-            }
-          }
-        },
-        {
-          "name": "getAllOffers",
+          "name": "getAllAdmin",
           "request": {
             "method": "GET",
             "header": [
@@ -4264,7 +4612,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "offers",
                 "admin",
@@ -4279,7 +4626,7 @@
       "name": "MerchantAnalytics",
       "item": [
         {
-          "name": "salesAnalytics",
+          "name": "getSales",
           "request": {
             "method": "GET",
             "header": [
@@ -4300,7 +4647,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "merchants",
                 "analytics",
@@ -4310,7 +4656,7 @@
           }
         },
         {
-          "name": "productAnalytics",
+          "name": "getProducts",
           "request": {
             "method": "GET",
             "header": [
@@ -4331,7 +4677,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "merchants",
                 "analytics",
@@ -4341,7 +4686,7 @@
           }
         },
         {
-          "name": "customerAnalytics",
+          "name": "getCustomers",
           "request": {
             "method": "GET",
             "header": [
@@ -4362,7 +4707,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "merchants",
                 "analytics",
@@ -4372,7 +4716,7 @@
           }
         },
         {
-          "name": "inventoryAnalytics",
+          "name": "getInventory",
           "request": {
             "method": "GET",
             "header": [
@@ -4393,7 +4737,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "merchants",
                 "analytics",
@@ -4403,7 +4746,7 @@
           }
         },
         {
-          "name": "revenueForecast",
+          "name": "getForecast",
           "request": {
             "method": "GET",
             "header": [
@@ -4424,7 +4767,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "merchants",
                 "analytics",
@@ -4434,7 +4776,7 @@
           }
         },
         {
-          "name": "reviewAnalytics",
+          "name": "getReviews",
           "request": {
             "method": "GET",
             "header": [
@@ -4455,7 +4797,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "merchants",
                 "analytics",
@@ -4469,190 +4810,6 @@
     {
       "name": "DeliveryZones",
       "item": [
-        {
-          "name": "setLocation",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}",
-                "type": "text"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/merchants/zones/location",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "",
-                "api",
-                "merchants",
-                "zones",
-                "location"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "getZones",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}",
-                "type": "text"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/merchants/zones/delivery-zones",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "",
-                "api",
-                "merchants",
-                "zones",
-                "delivery-zones"
-              ]
-            }
-          }
-        },
-        {
-          "name": "addZone",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}",
-                "type": "text"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/merchants/zones/delivery-zones",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "",
-                "api",
-                "merchants",
-                "zones",
-                "delivery-zones"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "updateZone",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}",
-                "type": "text"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/merchants/zones/delivery-zones/:zoneId",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "",
-                "api",
-                "merchants",
-                "zones",
-                "delivery-zones",
-                "{{zoneId}}"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "deleteZone",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}",
-                "type": "text"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/merchants/zones/delivery-zones/:zoneId",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "",
-                "api",
-                "merchants",
-                "zones",
-                "delivery-zones",
-                "{{zoneId}}"
-              ]
-            }
-          }
-        },
         {
           "name": "checkDelivery",
           "request": {
@@ -4675,7 +4832,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "merchants",
                 "zones",
@@ -4684,7 +4840,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -4715,7 +4871,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "merchants",
                 "zones",
@@ -4724,12 +4879,191 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
+            }
+          }
+        },
+        {
+          "name": "setLocation",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/merchants/zones/location",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "merchants",
+                "zones",
+                "location"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "getZones",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/merchants/zones/delivery-zones",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "merchants",
+                "zones",
+                "delivery-zones"
+              ]
+            }
+          }
+        },
+        {
+          "name": "addZone",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/merchants/zones/delivery-zones",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "merchants",
+                "zones",
+                "delivery-zones"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "updateZone",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/merchants/zones/delivery-zones/:zoneId",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "merchants",
+                "zones",
+                "delivery-zones",
+                "{{zoneId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "deleteZone",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/merchants/zones/delivery-zones/:zoneId",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "merchants",
+                "zones",
+                "delivery-zones",
+                "{{zoneId}}"
+              ]
             }
           }
         }
@@ -4760,7 +5094,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "membership",
                 "plans"
@@ -4790,7 +5123,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "membership"
               ]
@@ -4819,7 +5151,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "membership",
                 "subscribe"
@@ -4827,7 +5158,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -4858,7 +5189,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "membership",
                 "cancel"
@@ -4866,7 +5196,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -4897,7 +5227,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "membership",
                 "premium-products"
@@ -4927,10 +5256,144 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "membership",
                 "check-benefit"
+              ]
+            }
+          }
+        },
+        {
+          "name": "getHistory",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/membership/history",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "membership",
+                "history"
+              ]
+            }
+          }
+        },
+        {
+          "name": "initiate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/membership/initiate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "membership",
+                "initiate"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "activate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/membership/activate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "membership",
+                "activate"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "getAdminAll",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/membership/admin/all",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "membership",
+                "admin",
+                "all"
               ]
             }
           }
@@ -4962,14 +5425,13 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "prebooking"
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"name\": \"Organic Tomatoes\",\n    \"description\": \"Fresh farm tomatoes\",\n    \"price\": 80,\n    \"stock\": 100,\n    \"unit\": \"kg\",\n    \"category\": \"{{category_id}}\",\n    \"tags\": [\n        \"organic\",\n        \"farm-fresh\"\n    ],\n    \"primaryImage\": \"https://example.com/tomato.jpg\",\n    \"nutritionalInfo\": {\n        \"calories\": 18,\n        \"protein\": 0.9,\n        \"fat\": 0.2,\n        \"carbohydrates\": 3.9\n    }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -5000,7 +5462,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "prebooking",
                 "my-prebookings"
@@ -5030,7 +5491,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "prebooking",
                 "{{id}}"
@@ -5060,7 +5520,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "prebooking",
                 "{{id}}",
@@ -5069,7 +5528,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -5100,7 +5559,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "prebooking",
                 "products",
@@ -5110,7 +5568,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -5120,7 +5578,76 @@
           }
         },
         {
-          "name": "getAllPreBookings",
+          "name": "updateStatus",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/prebooking/:id/update-status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "prebooking",
+                "{{id}}",
+                "update-status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"status\": \"confirmed\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "getMerchantAll",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/prebooking/merchant/all",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "prebooking",
+                "merchant",
+                "all"
+              ]
+            }
+          }
+        },
+        {
+          "name": "getAdminAll",
           "request": {
             "method": "GET",
             "header": [
@@ -5141,7 +5668,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "prebooking",
                 "admin",
@@ -5177,7 +5703,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "documents",
                 "upload"
@@ -5185,7 +5710,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -5195,7 +5720,36 @@
           }
         },
         {
-          "name": "getDocuments",
+          "name": "getHistory",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/documents/history",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "documents",
+                "history"
+              ]
+            }
+          }
+        },
+        {
+          "name": "getMerchantDocs",
           "request": {
             "method": "GET",
             "header": [
@@ -5216,7 +5770,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "documents"
               ]
@@ -5224,7 +5777,7 @@
           }
         },
         {
-          "name": "deleteDocument",
+          "name": "deleteDoc",
           "request": {
             "method": "DELETE",
             "header": [
@@ -5245,7 +5798,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "documents",
                 "{{documentId}}"
@@ -5254,7 +5806,7 @@
           }
         },
         {
-          "name": "getPending",
+          "name": "getAdminPending",
           "request": {
             "method": "GET",
             "header": [
@@ -5275,7 +5827,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "documents",
                 "admin",
@@ -5285,7 +5836,7 @@
           }
         },
         {
-          "name": "verify",
+          "name": "verifyDoc",
           "request": {
             "method": "PUT",
             "header": [
@@ -5306,7 +5857,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "documents",
                 "admin",
@@ -5317,7 +5867,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"status\": \"approved\",\n    \"comment\": \"Legit document\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -5348,7 +5898,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "documents",
                 "admin",
@@ -5384,14 +5933,13 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "disputes"
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"orderId\": \"{{order_id}}\",\n    \"category\": \"damaged_item\",\n    \"description\": \"The product was damaged\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -5422,7 +5970,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "disputes",
                 "my-disputes"
@@ -5452,7 +5999,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "disputes",
                 "{{id}}"
@@ -5482,7 +6028,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "disputes",
                 "{{id}}",
@@ -5491,7 +6036,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"message\": \"I have attached photos of the damage.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -5522,7 +6067,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "disputes",
                 "{{id}}",
@@ -5531,7 +6075,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -5541,7 +6085,7 @@
           }
         },
         {
-          "name": "getAllDisputes",
+          "name": "getAdminAll",
           "request": {
             "method": "GET",
             "header": [
@@ -5562,7 +6106,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "disputes",
                 "admin",
@@ -5572,7 +6115,7 @@
           }
         },
         {
-          "name": "resolveDispute",
+          "name": "resolve",
           "request": {
             "method": "PUT",
             "header": [
@@ -5593,7 +6136,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "disputes",
                 "admin",
@@ -5603,7 +6145,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"status\": \"resolved\",\n    \"resolution\": \"Refunded to wallet\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -5634,7 +6176,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "disputes",
                 "admin",
@@ -5644,7 +6185,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"status\": \"confirmed\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -5680,7 +6221,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "financial",
                 "merchants",
@@ -5711,7 +6251,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "financial",
                 "merchants",
@@ -5742,7 +6281,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "financial",
                 "payouts",
@@ -5752,7 +6290,7 @@
           }
         },
         {
-          "name": "getAllPayouts",
+          "name": "getAdminPayouts",
           "request": {
             "method": "GET",
             "header": [
@@ -5773,7 +6311,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "financial",
                 "admin",
@@ -5804,7 +6341,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "financial",
                 "admin",
@@ -5814,7 +6350,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -5845,7 +6381,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "financial",
                 "admin",
@@ -5856,7 +6391,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -5887,7 +6422,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "financial",
                 "admin",
@@ -5898,7 +6432,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -5908,7 +6442,7 @@
           }
         },
         {
-          "name": "getFinancialReports",
+          "name": "getReports",
           "request": {
             "method": "GET",
             "header": [
@@ -5929,7 +6463,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "financial",
                 "admin",
@@ -5961,7 +6494,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "financial",
                 "admin",
@@ -5993,7 +6525,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "financial",
                 "admin",
@@ -6003,7 +6534,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -6039,7 +6570,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "bulk",
                 "products",
@@ -6048,7 +6578,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -6079,7 +6609,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "bulk",
                 "products",
@@ -6088,7 +6617,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"updates\": [\n        {\n            \"productId\": \"{{id1}}\",\n            \"newPrice\": 50\n        },\n        {\n            \"productId\": \"{{id2}}\",\n            \"newPrice\": 75\n        }\n    ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -6119,7 +6648,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "bulk",
                 "products",
@@ -6128,7 +6656,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"updates\": [\n        {\n            \"productId\": \"{{id1}}\",\n            \"newStock\": 100\n        },\n        {\n            \"productId\": \"{{id2}}\",\n            \"newStock\": 200\n        }\n    ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -6159,7 +6687,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "bulk",
                 "products",
@@ -6195,7 +6722,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "search",
                 "products"
@@ -6225,7 +6751,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "search",
                 "suggestions"
@@ -6255,7 +6780,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "search",
                 "trending"
@@ -6290,14 +6814,13 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "returns"
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"orderId\": \"{{order_id}}\",\n    \"type\": \"return\",\n    \"reason\": \"Wrong item\",\n    \"items\": [\n        {\n            \"productId\": \"{{product_id}}\",\n            \"quantity\": 1,\n            \"reason\": \"Wrong size\"\n        }\n    ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -6328,7 +6851,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "returns",
                 "my-returns"
@@ -6358,7 +6880,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "returns",
                 "{{id}}"
@@ -6388,7 +6909,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "returns",
                 "{{id}}"
@@ -6397,7 +6917,7 @@
           }
         },
         {
-          "name": "getAllReturns",
+          "name": "getAdminAll",
           "request": {
             "method": "GET",
             "header": [
@@ -6418,7 +6938,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "returns",
                 "admin",
@@ -6449,7 +6968,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "returns",
                 "admin",
@@ -6459,7 +6977,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"status\": \"approved\",\n    \"action\": \"refund\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -6495,7 +7013,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "gift-cards",
                 "balance",
@@ -6526,7 +7043,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "gift-cards",
                 "validate"
@@ -6534,7 +7050,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"code\": \"GC-123456\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -6565,7 +7081,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "gift-cards",
                 "redeem"
@@ -6573,7 +7088,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -6604,123 +7119,10 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "gift-cards",
                 "my-cards"
               ]
-            }
-          }
-        },
-        {
-          "name": "generateGiftCard",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}",
-                "type": "text"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/gift-cards/admin/generate",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "",
-                "api",
-                "gift-cards",
-                "admin",
-                "generate"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "getAllGiftCards",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}",
-                "type": "text"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/gift-cards/admin/all",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "",
-                "api",
-                "gift-cards",
-                "admin",
-                "all"
-              ]
-            }
-          }
-        },
-        {
-          "name": "cancelGiftCard",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}",
-                "type": "text"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/gift-cards/admin/:id/cancel",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "",
-                "api",
-                "gift-cards",
-                "admin",
-                "{{id}}",
-                "cancel"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
             }
           }
         },
@@ -6746,7 +7148,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "gift-cards",
                 "purchase",
@@ -6755,7 +7156,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{\n    \"amount\": 1000,\n    \"purchasedFor\": \"friend@example.com\",\n    \"message\": \"Gift for you!\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -6786,7 +7187,6 @@
                 "{{base_url}}"
               ],
               "path": [
-                "",
                 "api",
                 "gift-cards",
                 "purchase",
@@ -6795,7 +7195,116 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \n}",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "adminGenerate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/gift-cards/admin/generate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "gift-cards",
+                "admin",
+                "generate"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"amount\": 500,\n    \"expiryDate\": \"2026-12-31\",\n    \"purchasedFor\": \"test@user.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "adminGetAll",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/gift-cards/admin/all",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "gift-cards",
+                "admin",
+                "all"
+              ]
+            }
+          }
+        },
+        {
+          "name": "adminCancel",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/gift-cards/admin/:id/cancel",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "gift-cards",
+                "admin",
+                "{{id}}",
+                "cancel"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -6805,6 +7314,742 @@
           }
         }
       ]
+    },
+    {
+      "name": "DeliveryAgents",
+      "item": [
+        {
+          "name": "register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/agents/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "agents",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Agent Smith\",\n    \"email\": \"agent@greenbasket.com\",\n    \"phone\": \"1122334455\",\n    \"password\": \"agentpassword\",\n    \"vehicleType\": \"bike\",\n    \"vehicleNumber\": \"ABC-123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/agents/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "agents",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"agent@greenbasket.com\",\n    \"password\": \"agentpassword\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "getProfile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/agents/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "agents",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "updateProfile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/agents/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "agents",
+                "me"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"John Doe Updated\",\n    \"phone\": \"1234567891\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "updateStatus",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/agents/me/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "agents",
+                "me",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"status\": \"confirmed\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "updateLocation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/agents/me/location",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "agents",
+                "me",
+                "location"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"latitude\": 12.9716,\n    \"longitude\": 77.5946\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "getCurrentAssignment",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/agents/assignments/current",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "agents",
+                "assignments",
+                "current"
+              ]
+            }
+          }
+        },
+        {
+          "name": "getAssignments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/agents/assignments",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "agents",
+                "assignments"
+              ]
+            }
+          }
+        },
+        {
+          "name": "getAssignmentById",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/agents/assignments/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "agents",
+                "assignments",
+                "{{id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "updateAssignmentStatus",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/agents/assignments/:id/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "agents",
+                "assignments",
+                "{{id}}",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"status\": \"delivered\",\n    \"otp\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "getEarnings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/agents/earnings",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "agents",
+                "earnings"
+              ]
+            }
+          }
+        },
+        {
+          "name": "adminGetAllAgents",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/agents",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "agents"
+              ]
+            }
+          }
+        },
+        {
+          "name": "adminGetAnalytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/agents/analytics",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "agents",
+                "analytics"
+              ]
+            }
+          }
+        },
+        {
+          "name": "adminGetAgentById",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/agents/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "agents",
+                "{{id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "adminGetAgentAssignments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/agents/:id/assignments",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "agents",
+                "{{id}}",
+                "assignments"
+              ]
+            }
+          }
+        },
+        {
+          "name": "adminVerifyAgent",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/agents/:id/verify",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "agents",
+                "{{id}}",
+                "verify"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "adminToggleAgentActive",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/agents/:id/toggle-active",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "agents",
+                "{{id}}",
+                "toggle-active"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "adminManualAssign",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/orders/:orderId/assign/:agentId",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "orders",
+                "{{orderId}}",
+                "assign",
+                "{{agentId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "adminGetUnassignedOrders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/orders/unassigned",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "orders",
+                "unassigned"
+              ]
+            }
+          }
+        },
+        {
+          "name": "adminGetAllAssignments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/assignments",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "assignments"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5001",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "productId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "orderId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "category_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "address_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "uploadId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "code",
+      "value": "",
+      "type": "string"
     }
   ]
 }

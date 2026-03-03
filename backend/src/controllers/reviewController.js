@@ -256,6 +256,52 @@ exports.getMyReviews = async (req, res) => {
     }
 };
 
+// ─── Merchant: reply to a review ─────────────────────────────────────────────
+exports.replyToReview = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { comment } = req.body;
+
+        if (!comment || comment.trim().length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Reply comment is required'
+            });
+        }
+
+        const review = await Review.findById(id);
+        if (!review) {
+            return res.status(404).json({ success: false, message: 'Review not found' });
+        }
+
+        // Only the merchant who owns this review may reply
+        if (review.merchant.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorised to reply to this review'
+            });
+        }
+
+        review.merchantReply = {
+            comment: comment.trim(),
+            repliedAt: new Date()
+        };
+        await review.save();
+
+        res.json({
+            success: true,
+            message: 'Reply posted successfully',
+            data: { review }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error posting reply',
+            error: error.message
+        });
+    }
+};
+
 exports.updateReview = async (req, res) => {
     try {
         const { id } = req.params;

@@ -5,12 +5,12 @@ const { protect, restrictTo } = require('../middlewares/authMiddleware');
 
 // Public routes
 router.get('/flash-sales', offerController.getFlashSales);
+router.get('/available', offerController.getAvailableOffers);
 
 // Protected routes
 router.use(protect);
 
 // User routes
-router.get('/available', offerController.getAvailableOffers);
 router.post('/cart/apply-coupon', offerController.applyCoupon);
 router.delete('/cart/remove-coupon', offerController.removeCoupon);
 

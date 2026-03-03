@@ -87,7 +87,8 @@ dependencies:
   firebase_messaging: ^15.0.4
 
   # Payments
-  razorpay_flutter: ^1.3.7
+  flutter_stripe: ^10.1.1
+  flutter_stripe_android: ^10.1.1
 
   # Utilities
   intl: ^0.19.0
@@ -179,9 +180,9 @@ class AppConfig {
     defaultValue: 'http://localhost:6000', // Change to your backend URL
   );
   
-  static const String razorpayKey = String.fromEnvironment(
-    'RAZORPAY_KEY',
-    defaultValue: 'YOUR_RAZORPAY_TEST_KEY',
+  static const String stripePublishableKey = String.fromEnvironment(
+    'STRIPE_PUBLISHABLE_KEY',
+    defaultValue: 'pk_test_YOUR_STRIPE_TEST_KEY',
   );
 }
 ```
