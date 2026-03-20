@@ -1,11 +1,14 @@
-const sgMail = require('@sendgrid/mail');
+const nodemailer = require('nodemailer');
+const emailConfig = require('../config/email');
 
-// Set API Key
-if (process.env.SENDGRID_API_KEY) {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-} else {
-  console.warn('⚠️ SendGrid API Key missing in environment variables');
-}
+// Create transporter
+const transporter = nodemailer.createTransport({
+  service: emailConfig.service,
+  auth: {
+    user: emailConfig.auth.user,
+    pass: emailConfig.auth.pass
+  }
+});
 
 // Email templates
 const templates = {
@@ -90,37 +93,23 @@ const sendEmail = async ({ to, subject, template, data }) => {
   try {
     const htmlContent = templates[template] ? templates[template](data) : (data.html || JSON.stringify(data));
 
-    // Determine sender address
-    // Priority: EMAIL_FROM in env -> EMAIL_USER in env -> fallback
-    let from = process.env.EMAIL_FROM;
-    if (!from || from === 'noreply@greenbasket.com') {
-      // If EMAIL_FROM is generic/default, try using the authenticated user email if available
-      // This helps when using SendGrid Single Sender Verification with a personal email
-      if (process.env.EMAIL_USER && process.env.EMAIL_USER.includes('@')) {
-        from = process.env.EMAIL_USER;
-      }
-    }
-
-    const msg = {
+    const mailOptions = {
+      from: emailConfig.from,
       to,
-      from: from || 'noreply@greenbasket.com',
       subject,
       html: htmlContent
     };
 
-    console.log(`📧 Sending email to ${to} via SendGrid...`);
-    const response = await sgMail.send(msg);
+    console.log(`📧 Sending email to ${to} via Nodemailer (${emailConfig.service})...`);
+    const info = await transporter.sendMail(mailOptions);
 
-    console.log('✅ Email sent successfully via SendGrid');
+    console.log('✅ Email sent successfully:', info.messageId);
     return {
       success: true,
-      messageId: response[0].headers['x-message-id']
+      messageId: info.messageId
     };
   } catch (error) {
-    console.error('❌ SendGrid Email Error:', error);
-    if (error.response) {
-      console.error('   Details:', error.response.body);
-    }
+    console.error('❌ Nodemailer Email Error:', error);
     throw error;
   }
 };

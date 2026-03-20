@@ -54,6 +54,16 @@ const users = [
         dietaryPreferences: ['vegetarian', 'gluten-free'],
         loyaltyPoints: 100,
         loyaltyTier: 'bronze'
+    },
+    {
+        name: 'Christoph Leon',
+        email: 'christophleon00762@gmail.com',
+        password: 'password123',
+        phone: '8590328473',
+        isEmailVerified: true,
+        dietaryPreferences: ['organic-only'],
+        loyaltyPoints: 1000,
+        loyaltyTier: 'platinum'
     }
 ];
 
