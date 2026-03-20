@@ -59,7 +59,31 @@ const runCronJobs = () => {
                         }
                     }
 
-                    if (orderItems.length === 0) continue;
+                    if (!sub.user) {
+                        console.error(`Subscription ${sub._id} has no user data (likely deleted). Cancelling.`);
+                        sub.status = 'cancelled';
+                        await sub.save();
+                        continue;
+                    }
+                    if (!sub.merchant) {
+                        console.error(`Subscription ${sub._id} has no merchant data (likely deleted). Cancelling.`);
+                        sub.status = 'cancelled';
+                        await sub.save();
+                        continue;
+                    }
+
+                    if (orderItems.length === 0) {
+                        console.warn(`Subscription ${sub._id} has no valid items. Rescheduling to next delivery.`);
+                        // Push next delivery date so we don't try again today
+                        let nextDate = new Date(sub.nextDelivery);
+                        if (sub.frequency === 'daily') nextDate.setDate(nextDate.getDate() + 1);
+                        else if (sub.frequency === 'weekly') nextDate.setDate(nextDate.getDate() + 7);
+                        else if (sub.frequency === 'bi-weekly') nextDate.setDate(nextDate.getDate() + 14);
+                        else if (sub.frequency === 'monthly') nextDate.setMonth(nextDate.getMonth() + 1);
+                        sub.nextDelivery = nextDate;
+                        await sub.save();
+                        continue;
+                    }
 
                     // Create Order
                     const order = await Order.create({

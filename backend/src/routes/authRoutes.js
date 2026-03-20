@@ -18,6 +18,7 @@ router.post('/user/forgot-password', authController.forgotPassword);
 router.post('/user/reset-password', authController.resetPassword);
 
 // Merchant Authentication
+
 router.post('/merchant/signup', validateSignup, validate, authController.merchantSignup);
 router.post('/merchant/login', validateLogin, validate, authController.merchantLogin);
 

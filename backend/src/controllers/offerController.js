@@ -216,7 +216,7 @@ exports.getAvailableOffers = async (req, res) => {
                 }
 
                 // Check usage per user
-                if (offer.usagePerUser) {
+                if (offer.usagePerUser && req.user) {
                     const userUsageCount = offer.usedBy.filter(
                         u => u.user.toString() === req.user._id.toString()
                     ).length;

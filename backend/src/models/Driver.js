@@ -105,8 +105,6 @@ const driverSchema = new mongoose.Schema({
 
 // Indexes
 driverSchema.index({ currentLocation: '2dsphere' });
-driverSchema.index({ email: 1 });
-driverSchema.index({ phone: 1 });
 driverSchema.index({ status: 1, isActive: 1 });
 
 // Hash password before saving

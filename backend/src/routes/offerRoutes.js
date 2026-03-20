@@ -1,11 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const offerController = require('../controllers/offerController');
-const { protect, restrictTo } = require('../middlewares/authMiddleware');
+const { protect, restrictTo, optionalAuthenticate } = require('../middlewares/authMiddleware');
+const { uploadOfferImage } = require('../middlewares/uploadMiddleware');
 
 // Public routes
+router.get('/', optionalAuthenticate, offerController.getAvailableOffers);
 router.get('/flash-sales', offerController.getFlashSales);
-router.get('/available', offerController.getAvailableOffers);
+router.get('/available', optionalAuthenticate, offerController.getAvailableOffers);
 
 // Protected routes
 router.use(protect);

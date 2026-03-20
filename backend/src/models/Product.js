@@ -146,6 +146,17 @@ const productSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    dailySales: {
+        type: Number,
+        default: 0
+    },
+    dailyViews: {
+        type: Number,
+        default: 0
+    },
+    lastDailyActivity: {
+        type: String
+    },
 
     // Premium Membership Features
     isPremiumExclusive: {

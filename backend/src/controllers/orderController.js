@@ -56,6 +56,16 @@ exports.createOrder = async (req, res) => {
             // Reduce stock
             product.stock -= item.quantity;
             product.totalSales += item.quantity;
+
+            const todayStr = new Date().toISOString().split('T')[0];
+            if (product.lastDailyActivity !== todayStr) {
+                product.dailySales = item.quantity;
+                product.dailyViews = 0;
+                product.lastDailyActivity = todayStr;
+            } else {
+                product.dailySales = (product.dailySales || 0) + item.quantity;
+            }
+
             await product.save();
         }
 

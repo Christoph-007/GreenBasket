@@ -7,7 +7,6 @@ const uploadService = require('../services/uploadService');
 exports.getAllProducts = async (req, res) => {
     try {
         const { page = 1, limit = 12, category, merchant, search, sort = '-createdAt' } = req.query;
-
         const query = { status: 'active' };
 
         // Premium Logic: Filter restricted products for non-premium users
@@ -50,10 +49,18 @@ exports.getAllProducts = async (req, res) => {
             query.$text = { $search: search };
         }
 
+        let sortOption = sort || '-createdAt';
+        if (sort === 'popular-today') {
+            sortOption = { dailySales: -1, dailyViews: -1, totalSales: -1 };
+        } else if (sort === '-totalSales') {
+            sortOption = { totalSales: -1 };
+        }
+
+
         const products = await Product.find(query)
             .populate('merchant', 'businessName profileImage averageRating')
             .populate('category', 'name')
-            .sort(sort)
+            .sort(sortOption)
             .limit(limit * 1)
             .skip((page - 1) * limit);
 
@@ -124,7 +131,15 @@ exports.getProductById = async (req, res) => {
         }
 
         // Increment views
-        product.views += 1;
+        const todayStr = new Date().toISOString().split('T')[0];
+        if (product.lastDailyActivity !== todayStr) {
+            product.dailyViews = 1;
+            product.dailySales = 0;
+            product.lastDailyActivity = todayStr;
+        } else {
+            product.dailyViews = (product.dailyViews || 0) + 1;
+        }
+        product.views = (product.views || 0) + 1;
         await product.save();
 
         res.json({

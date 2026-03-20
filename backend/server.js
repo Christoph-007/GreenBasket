@@ -3,7 +3,8 @@ const http = require('http');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 // Import config
 const connectDB = require('./src/config/database');
@@ -431,6 +432,7 @@ app.use('/api/disputes', disputeRoutes);
 app.use('/api/financial', financialRoutes);
 app.use('/api/bulk', bulkOperationsRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/promotions', offerRoutes);
 app.use('/api/returns', returnRoutes);
 app.use('/api/gift-cards', giftCardRoutes);
 app.use('/api/agents', agentRoutes);
