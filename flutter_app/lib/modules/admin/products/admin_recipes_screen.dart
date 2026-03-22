@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:greenbasket_app/config/theme.dart';
-import 'package:greenbasket_app/modules/admin/products/create_recipe_screen.dart';
+import '../admin_controller.dart';
+import 'create_recipe_screen.dart';
 
 class AdminRecipesScreen extends StatefulWidget {
   const AdminRecipesScreen({super.key});
@@ -11,26 +12,18 @@ class AdminRecipesScreen extends StatefulWidget {
 }
 
 class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
+  final controller = Get.find<AdminController>();
   final _searchController = TextEditingController();
-  String _searchQuery = '';
+  final RxString _searchQuery = ''.obs;
 
-  // Mock recipes — replace with API call
-  final List<Map<String, dynamic>> _recipes = [
-    {'id': 'R001', 'name': 'Palak Paneer', 'author': 'Chef Anita', 'ingredients': 12, 'status': 'Published', 'category': 'Lunch'},
-    {'id': 'R002', 'name': 'Mango Smoothie Bowl', 'author': 'Admin', 'ingredients': 8, 'status': 'Published', 'category': 'Breakfast'},
-    {'id': 'R003', 'name': 'Veggie Stir-fry', 'author': 'Chef Raj', 'ingredients': 10, 'status': 'Draft', 'category': 'Dinner'},
-    {'id': 'R004', 'name': 'Carrot Halwa', 'author': 'Admin', 'ingredients': 6, 'status': 'Published', 'category': 'Snacks'},
-    {'id': 'R005', 'name': 'Dal Tadka', 'author': 'Chef Anita', 'ingredients': 9, 'status': 'Draft', 'category': 'Lunch'},
-  ];
-
-  Color _statusColor(String status) {
-    return status == 'Published' ? AppColors.success : AppColors.textSecondary;
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
-  List<Map<String, dynamic>> get _filtered {
-    return _recipes.where((r) =>
-        (r['name'] as String).toLowerCase().contains(_searchQuery.toLowerCase()) ||
-        (r['author'] as String).toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+  Color _statusColor(String status) {
+    return status.toLowerCase() == 'published' ? AppColors.success : AppColors.textSecondary;
   }
 
   void _showRecipeOptions(Map<String, dynamic> recipe) {
@@ -51,7 +44,7 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
               decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(AppRadius.full)),
             ),
             const SizedBox(height: AppSpacing.md),
-            Text(recipe['name'] as String, style: AppTextStyles.titleLarge),
+            Text(recipe['name']?.toString() ?? 'Recipe', style: AppTextStyles.titleLarge),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.edit_outlined, color: AppColors.info),
@@ -63,12 +56,12 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
             ),
             ListTile(
               leading: Icon(
-                recipe['status'] == 'Published' ? Icons.unpublished_outlined : Icons.publish,
+                recipe['status']?.toString().toLowerCase() == 'published' ? Icons.unpublished_outlined : Icons.publish,
                 color: AppColors.warning,
               ),
-              title: Text(recipe['status'] == 'Published' ? 'Unpublish' : 'Publish'),
+              title: Text(recipe['status']?.toString().toLowerCase() == 'published' ? 'Unpublish' : 'Publish'),
               onTap: () {
-                setState(() => recipe['status'] = recipe['status'] == 'Published' ? 'Draft' : 'Published');
+                // TODO: Call API to toggle status
                 Navigator.pop(ctx);
               },
             ),
@@ -76,8 +69,8 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
               leading: const Icon(Icons.delete_outline, color: AppColors.error),
               title: const Text('Delete Recipe', style: TextStyle(color: AppColors.error)),
               onTap: () {
+                // TODO: Call API to delete recipe
                 Navigator.pop(ctx);
-                setState(() => _recipes.remove(recipe));
                 Get.snackbar('Deleted', '${recipe['name']} deleted.',
                     backgroundColor: AppColors.error, colorText: Colors.white);
               },
@@ -90,14 +83,7 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
   }
 
   @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final recipes = _filtered;
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -119,7 +105,7 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
             padding: const EdgeInsets.all(AppSpacing.md),
             child: TextField(
               controller: _searchController,
-              onChanged: (v) => setState(() => _searchQuery = v),
+              onChanged: (v) => _searchQuery.value = v,
               decoration: const InputDecoration(
                 hintText: 'Search recipes or authors...',
                 prefixIcon: Icon(Icons.search, color: AppColors.textHint),
@@ -127,13 +113,25 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
             ),
           ),
           Expanded(
-            child: recipes.isEmpty
-                ? const Center(child: Text('No recipes found.'))
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                    itemCount: recipes.length,
-                    itemBuilder: (_, i) => _buildRecipeCard(recipes[i]),
-                  ),
+            child: Obx(() {
+              final recipeList = controller.recipes.where((r) {
+                final recipe = r as Map<String, dynamic>;
+                final name = recipe['name']?.toString().toLowerCase() ?? '';
+                final author = recipe['author']?['name']?.toString().toLowerCase() ?? '';
+                final query = _searchQuery.value.toLowerCase();
+                return name.contains(query) || author.contains(query);
+              }).toList();
+
+              if (recipeList.isEmpty) {
+                return const Center(child: Text('No recipes found.'));
+              }
+
+              return ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                itemCount: recipeList.length,
+                itemBuilder: (_, i) => _buildRecipeCard(recipeList[i] as Map<String, dynamic>),
+              );
+            }),
           ),
         ],
       ),
@@ -141,7 +139,12 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
   }
 
   Widget _buildRecipeCard(Map<String, dynamic> recipe) {
-    final status = recipe['status'] as String;
+    final status = recipe['status']?.toString() ?? 'Draft';
+    final name = recipe['name']?.toString() ?? 'N/A';
+    final authorName = recipe['author']?['name']?.toString() ?? 'Admin';
+    final category = recipe['category']?['name'] ?? recipe['category']?.toString() ?? 'General';
+    final ingredientsCount = (recipe['ingredients'] as List?)?.length ?? 0;
+
     return Card(
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: InkWell(
@@ -171,7 +174,7 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
                   children: [
                     Row(
                       children: [
-                        Expanded(child: Text(recipe['name'] as String, style: AppTextStyles.titleMedium)),
+                        Expanded(child: Text(name, style: AppTextStyles.titleMedium)),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
@@ -186,7 +189,7 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text('By ${recipe['author']}', style: AppTextStyles.bodySmall),
+                    Text('By $authorName', style: AppTextStyles.bodySmall),
                     const SizedBox(height: 4),
                     Row(
                       children: [
@@ -197,14 +200,14 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
                             borderRadius: BorderRadius.circular(AppRadius.full),
                           ),
                           child: Text(
-                            recipe['category'] as String,
+                            category,
                             style: AppTextStyles.labelSmall.copyWith(color: AppColors.primary),
                           ),
                         ),
                         const SizedBox(width: AppSpacing.sm),
                         const Icon(Icons.local_grocery_store_outlined, size: 12, color: AppColors.textSecondary),
                         const SizedBox(width: 2),
-                        Text('${recipe['ingredients']} ingredients', style: AppTextStyles.bodySmall),
+                        Text('$ingredientsCount ingredients', style: AppTextStyles.bodySmall),
                       ],
                     ),
                   ],

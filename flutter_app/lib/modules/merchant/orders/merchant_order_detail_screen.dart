@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:greenbasket_app/config/theme.dart';
-
-enum OrderStatus { pending, confirmed, preparing, ready, dispatched }
+import 'package:greenbasket_app/data/models/order_model.dart';
+import 'package:greenbasket_app/utils/helpers.dart';
+import '../../../data/repositories/merchant_repository.dart';
 
 class MerchantOrderDetailScreen extends StatefulWidget {
-  const MerchantOrderDetailScreen({super.key});
+  final OrderModel order;
+  const MerchantOrderDetailScreen({super.key, required this.order});
 
   @override
   State<MerchantOrderDetailScreen> createState() =>
@@ -15,108 +17,104 @@ class MerchantOrderDetailScreen extends StatefulWidget {
 
 class _MerchantOrderDetailScreenState
     extends State<MerchantOrderDetailScreen> {
-  // TODO: replace with real order data passed via Get.arguments
-  OrderStatus _status = OrderStatus.pending;
+  final _repo = MerchantRepository();
+  late String _currentStatus;
+  bool _isUpdating = false;
+  bool _isLoadingAgents = false;
+  List<Map<String, dynamic>> _availableAgents = [];
 
-  final _orderNumber = 'GB2024001';
-  final _customerName = 'Priya Sharma';
-  final _customerPhone = '+91 98765 43210';
-  final _customerAddress =
-      '204, Green Residency, MG Road, Bengaluru - 560001';
-  final _specialInstructions =
-      'Please pack items carefully. Ring bell twice on arrival.';
-
-  final List<Map<String, dynamic>> _items = [
-    {'name': 'Fresh Tomatoes', 'qty': 2, 'unit': 'kg', 'price': 90.0},
-    {'name': 'Baby Spinach', 'qty': 1, 'unit': 'bunch', 'price': 35.0},
-    {'name': 'Organic Carrots', 'qty': 0.5, 'unit': 'kg', 'price': 30.0},
-    {'name': 'Coriander Leaves', 'qty': 1, 'unit': 'bunch', 'price': 15.0},
-  ];
-
-  double get _subtotal =>
-      _items.fold(0, (sum, item) => sum + (item['price'] as double));
-  double get _delivery => 40.0;
-  double get _total => _subtotal + _delivery;
-
-  String get _statusLabel {
-    switch (_status) {
-      case OrderStatus.pending:
-        return 'Pending';
-      case OrderStatus.confirmed:
-        return 'Confirmed';
-      case OrderStatus.preparing:
-        return 'Preparing';
-      case OrderStatus.ready:
-        return 'Ready';
-      case OrderStatus.dispatched:
-        return 'Dispatched';
-    }
+  @override
+  void initState() {
+    super.initState();
+    _currentStatus = widget.order.status;
   }
 
-  Color get _statusColor {
-    switch (_status) {
-      case OrderStatus.pending:
-        return AppColors.warning;
-      case OrderStatus.confirmed:
-        return AppColors.info;
-      case OrderStatus.preparing:
-        return AppColors.secondary;
-      case OrderStatus.ready:
-        return AppColors.success;
-      case OrderStatus.dispatched:
-        return AppColors.primary;
-    }
-  }
-
-  Color get _statusBgColor {
-    switch (_status) {
-      case OrderStatus.pending:
-        return AppColors.warning.withOpacity(0.1);
-      case OrderStatus.confirmed:
-        return AppColors.info.withOpacity(0.1);
-      case OrderStatus.preparing:
-        return AppColors.secondary.withOpacity(0.1);
-      case OrderStatus.ready:
-        return AppColors.success.withOpacity(0.1);
-      case OrderStatus.dispatched:
-        return AppColors.primary.withOpacity(0.1);
+  String get _nextStatus {
+    switch (_currentStatus.toLowerCase()) {
+      case 'pending':
+        return 'confirmed';
+      case 'confirmed':
+        return 'preparing';
+      case 'preparing':
+        return 'ready';
+      default:
+        return '';
     }
   }
 
   String? get _primaryActionLabel {
-    switch (_status) {
-      case OrderStatus.pending:
+    switch (_currentStatus.toLowerCase()) {
+      case 'pending':
         return 'Confirm Order';
-      case OrderStatus.confirmed:
+      case 'confirmed':
         return 'Start Preparing';
-      case OrderStatus.preparing:
+      case 'preparing':
         return 'Mark Ready';
-      case OrderStatus.ready:
-      case OrderStatus.dispatched:
+      default:
         return null;
     }
   }
 
-  void _advanceStatus() {
-    setState(() {
-      switch (_status) {
-        case OrderStatus.pending:
-          _status = OrderStatus.confirmed;
-          break;
-        case OrderStatus.confirmed:
-          _status = OrderStatus.preparing;
-          break;
-        case OrderStatus.preparing:
-          _status = OrderStatus.ready;
-          break;
-        default:
-          break;
-      }
-    });
+  Color get _statusColor {
+    switch (_currentStatus.toLowerCase()) {
+      case 'pending':
+        return AppColors.warning;
+      case 'confirmed':
+        return AppColors.info;
+      case 'preparing':
+        return AppColors.secondary;
+      case 'ready':
+        return AppColors.success;
+      case 'dispatched':
+      case 'out_for_delivery':
+        return AppColors.primary;
+      case 'delivered':
+        return AppColors.success;
+      case 'cancelled':
+        return AppColors.error;
+      default:
+        return AppColors.textHint;
+    }
   }
 
-  void _assignDeliveryAgent() {
-    // TODO: navigate to assign delivery agent screen or show bottom sheet
+  Color get _statusBgColor => _statusColor.withOpacity(0.1);
+
+  Future<void> _advanceStatus() async {
+    final next = _nextStatus;
+    if (next.isEmpty) return;
+    setState(() => _isUpdating = true);
+    try {
+      await _repo.updateOrderStatus(widget.order.id, next);
+      setState(() => _currentStatus = next);
+      Get.snackbar(
+        'Status Updated',
+        'Order is now ${next.capitalizeFirst}',
+        backgroundColor: AppColors.success,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (_) {
+      Get.snackbar('Error', 'Could not update order status',
+          snackPosition: SnackPosition.BOTTOM);
+    } finally {
+      setState(() => _isUpdating = false);
+    }
+  }
+
+  Future<void> _loadAgentsAndShow() async {
+    setState(() => _isLoadingAgents = true);
+    try {
+      final agents = await _repo.getAvailableAgents();
+      _availableAgents = agents;
+    } catch (_) {
+      _availableAgents = [];
+    } finally {
+      setState(() => _isLoadingAgents = false);
+      if (mounted) _showAssignAgentSheet();
+    }
+  }
+
+  void _showAssignAgentSheet() {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -132,26 +130,50 @@ class _MerchantOrderDetailScreenState
             Text('Assign Delivery Agent',
                 style: AppTextStyles.titleLarge),
             const SizedBox(height: AppSpacing.md),
-            ...['Rajan Kumar', 'Suresh M.', 'Deepak R.'].map((name) =>
-                ListTile(
+            if (_availableAgents.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(AppSpacing.lg),
+                child: Center(
+                  child: Text('No agents available right now.',
+                      style: AppTextStyles.bodyMedium),
+                ),
+              )
+            else
+              ..._availableAgents.map((agent) {
+                final id = agent['_id'] ?? agent['id'] ?? '';
+                final name = agent['name'] ?? agent['agentName'] ?? 'Agent';
+                final status = agent['status'] ?? 'Available';
+
+                return ListTile(
                   leading: CircleAvatar(
                     backgroundColor: AppColors.primaryContainer,
-                    child: Text(name[0],
-                        style: AppTextStyles.labelLarge
-                            .copyWith(color: AppColors.primary)),
+                    child: Text(
+                      name.isNotEmpty ? name[0].toUpperCase() : 'A',
+                      style: AppTextStyles.labelLarge
+                          .copyWith(color: AppColors.primary),
+                    ),
                   ),
                   title: Text(name, style: AppTextStyles.bodyMedium),
-                  subtitle: Text('Available',
+                  subtitle: Text(status,
                       style: AppTextStyles.bodySmall
                           .copyWith(color: AppColors.success)),
                   trailing: ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       Navigator.pop(ctx);
-                      Get.snackbar('Agent Assigned',
-                          '$name assigned to order #$_orderNumber',
+                      try {
+                        await _repo.assignAgentToOrder(
+                            widget.order.id, id);
+                        Get.snackbar(
+                          'Agent Assigned',
+                          '$name assigned to order #${widget.order.orderNumber}',
                           backgroundColor: AppColors.success,
                           colorText: Colors.white,
-                          snackPosition: SnackPosition.BOTTOM);
+                          snackPosition: SnackPosition.BOTTOM,
+                        );
+                      } catch (_) {
+                        Get.snackbar('Error', 'Could not assign agent',
+                            snackPosition: SnackPosition.BOTTOM);
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
@@ -159,7 +181,8 @@ class _MerchantOrderDetailScreenState
                             vertical: AppSpacing.xs)),
                     child: const Text('Assign'),
                   ),
-                )),
+                );
+              }),
             const SizedBox(height: AppSpacing.md),
           ],
         ),
@@ -172,7 +195,7 @@ class _MerchantOrderDetailScreenState
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text('Order #$_orderNumber'),
+        title: Text('Order #${widget.order.orderNumber}'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, size: 20),
           onPressed: () => Get.back(),
@@ -191,9 +214,9 @@ class _MerchantOrderDetailScreenState
                       horizontal: AppSpacing.md, vertical: AppSpacing.sm),
                   decoration: BoxDecoration(
                     color: _statusBgColor,
-                    borderRadius:
-                        BorderRadius.circular(AppRadius.full),
-                    border: Border.all(color: _statusColor.withOpacity(0.3)),
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                    border:
+                        Border.all(color: _statusColor.withOpacity(0.3)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -208,7 +231,7 @@ class _MerchantOrderDetailScreenState
                       ),
                       const SizedBox(width: AppSpacing.xs),
                       Text(
-                        _statusLabel,
+                        _currentStatus.capitalizeFirst ?? _currentStatus,
                         style: AppTextStyles.labelLarge
                             .copyWith(color: _statusColor),
                       ),
@@ -217,7 +240,7 @@ class _MerchantOrderDetailScreenState
                 ),
                 const Spacer(),
                 Text(
-                  'Mar 22, 2024 · 10:30 AM',
+                  AppHelpers.formatDateTime(widget.order.createdAt),
                   style: AppTextStyles.bodySmall,
                 ),
               ],
@@ -238,7 +261,7 @@ class _MerchantOrderDetailScreenState
                         radius: 22,
                         backgroundColor: AppColors.primaryContainer,
                         child: Text(
-                          _customerName[0],
+                          'C',
                           style: AppTextStyles.titleLarge
                               .copyWith(color: AppColors.primary),
                         ),
@@ -248,22 +271,21 @@ class _MerchantOrderDetailScreenState
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(_customerName,
+                            Text(
+                                'Order #${widget.order.orderNumber}',
                                 style: AppTextStyles.titleMedium),
                             const SizedBox(height: 2),
                             GestureDetector(
                               onTap: () {
-                                // TODO: launch phone dialer
                                 HapticFeedback.lightImpact();
                               },
                               child: Row(
                                 children: [
                                   const Icon(Icons.phone_outlined,
-                                      size: 14,
-                                      color: AppColors.primary),
+                                      size: 14, color: AppColors.primary),
                                   const SizedBox(width: 4),
                                   Text(
-                                    _customerPhone,
+                                    'Contact Customer',
                                     style: AppTextStyles.bodySmall
                                         .copyWith(
                                             color: AppColors.primary),
@@ -286,7 +308,8 @@ class _MerchantOrderDetailScreenState
                           size: 16, color: AppColors.textSecondary),
                       const SizedBox(width: AppSpacing.xs),
                       Expanded(
-                        child: Text(_customerAddress,
+                        child: Text(
+                            widget.order.deliveryAddress.fullAddress,
                             style: AppTextStyles.bodyMedium),
                       ),
                     ],
@@ -301,12 +324,11 @@ class _MerchantOrderDetailScreenState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Order Items',
-                      style: AppTextStyles.titleMedium),
+                  Text('Order Items', style: AppTextStyles.titleMedium),
                   const SizedBox(height: AppSpacing.md),
-                  ..._items.map((item) => Padding(
-                        padding: const EdgeInsets.only(
-                            bottom: AppSpacing.md),
+                  ...widget.order.items.map((item) => Padding(
+                        padding:
+                            const EdgeInsets.only(bottom: AppSpacing.md),
                         child: Row(
                           children: [
                             Container(
@@ -317,8 +339,16 @@ class _MerchantOrderDetailScreenState
                                 borderRadius:
                                     BorderRadius.circular(AppRadius.sm),
                               ),
-                              child: const Icon(Icons.eco_outlined,
-                                  color: AppColors.primary, size: 20),
+                              child: item.productImage != null
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(
+                                          AppRadius.sm),
+                                      child: Image.network(
+                                          item.productImage!,
+                                          fit: BoxFit.cover),
+                                    )
+                                  : const Icon(Icons.eco_outlined,
+                                      color: AppColors.primary, size: 20),
                             ),
                             const SizedBox(width: AppSpacing.md),
                             Expanded(
@@ -326,18 +356,15 @@ class _MerchantOrderDetailScreenState
                                 crossAxisAlignment:
                                     CrossAxisAlignment.start,
                                 children: [
-                                  Text(item['name'] as String,
-                                      style:
-                                          AppTextStyles.bodyMedium),
-                                  Text(
-                                    '${item['qty']} ${item['unit']}',
-                                    style: AppTextStyles.bodySmall,
-                                  ),
+                                  Text(item.productName,
+                                      style: AppTextStyles.bodyMedium),
+                                  Text('Qty: ${item.quantity}',
+                                      style: AppTextStyles.bodySmall),
                                 ],
                               ),
                             ),
                             Text(
-                              '₹${(item['price'] as double).toStringAsFixed(0)}',
+                              AppHelpers.formatCurrency(item.itemTotal),
                               style: AppTextStyles.titleMedium,
                             ),
                           ],
@@ -346,14 +373,15 @@ class _MerchantOrderDetailScreenState
                   const Divider(),
                   const SizedBox(height: AppSpacing.sm),
                   _totalRow('Subtotal',
-                      '₹${_subtotal.toStringAsFixed(0)}'),
+                      AppHelpers.formatCurrency(widget.order.subtotal)),
                   const SizedBox(height: AppSpacing.xs),
                   _totalRow('Delivery',
-                      '₹${_delivery.toStringAsFixed(0)}'),
+                      AppHelpers.formatCurrency(widget.order.deliveryFee)),
                   const SizedBox(height: AppSpacing.sm),
                   const Divider(),
                   const SizedBox(height: AppSpacing.sm),
-                  _totalRow('Total', '₹${_total.toStringAsFixed(0)}',
+                  _totalRow('Total',
+                      AppHelpers.formatCurrency(widget.order.total),
                       isTotal: true),
                 ],
               ),
@@ -361,38 +389,39 @@ class _MerchantOrderDetailScreenState
             const SizedBox(height: AppSpacing.md),
 
             // Special instructions
-            if (_specialInstructions.isNotEmpty)
-              _sectionCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.notes_outlined,
-                            size: 18, color: AppColors.warning),
-                        const SizedBox(width: AppSpacing.xs),
-                        Text('Special Instructions',
-                            style: AppTextStyles.titleMedium),
-                      ],
+            _sectionCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.notes_outlined,
+                          size: 18, color: AppColors.warning),
+                      const SizedBox(width: AppSpacing.xs),
+                      Text('Special Instructions',
+                          style: AppTextStyles.titleMedium),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    decoration: BoxDecoration(
+                      color: AppColors.warning.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                      border: Border.all(
+                          color: AppColors.warning.withOpacity(0.3)),
                     ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      decoration: BoxDecoration(
-                        color: AppColors.warning.withOpacity(0.05),
-                        borderRadius:
-                            BorderRadius.circular(AppRadius.sm),
-                        border: Border.all(
-                            color:
-                                AppColors.warning.withOpacity(0.3)),
-                      ),
-                      child: Text(_specialInstructions,
-                          style: AppTextStyles.bodyMedium),
+                    child: Text(
+                      widget.order.notes?.isNotEmpty == true
+                          ? widget.order.notes!
+                          : 'No special instructions provided',
+                      style: AppTextStyles.bodyMedium,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+            ),
             const SizedBox(height: AppSpacing.xl),
           ],
         ),
@@ -416,8 +445,15 @@ class _MerchantOrderDetailScreenState
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: _advanceStatus,
-                    child: Text(_primaryActionLabel!),
+                    onPressed: _isUpdating ? null : _advanceStatus,
+                    child: _isUpdating
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white))
+                        : Text(_primaryActionLabel!),
                   ),
                 ),
               if (_primaryActionLabel != null)
@@ -425,9 +461,16 @@ class _MerchantOrderDetailScreenState
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
-                  onPressed: _assignDeliveryAgent,
-                  icon: const Icon(Icons.delivery_dining_outlined,
-                      size: 18),
+                  onPressed: _isLoadingAgents
+                      ? null
+                      : _loadAgentsAndShow,
+                  icon: _isLoadingAgents
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.delivery_dining_outlined,
+                          size: 18),
                   label: const Text('Assign Delivery Agent'),
                 ),
               ),
@@ -465,8 +508,7 @@ class _MerchantOrderDetailScreenState
         Text(
           amount,
           style: isTotal
-              ? AppTextStyles.titleLarge
-                  .copyWith(color: AppColors.primary)
+              ? AppTextStyles.titleLarge.copyWith(color: AppColors.primary)
               : AppTextStyles.bodyMedium,
         ),
       ],

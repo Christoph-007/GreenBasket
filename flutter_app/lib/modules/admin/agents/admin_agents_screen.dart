@@ -13,35 +13,7 @@ class AdminAgentsScreen extends StatefulWidget {
 class _AdminAgentsScreenState extends State<AdminAgentsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-
-  // Mock agents data — replace with API call
-  final _agents = [
-    {
-      'id': 'A001', 'name': 'Ravi Kumar', 'phone': '+91 76543 21098',
-      'vehicle': 'Two-wheeler', 'rating': 4.8, 'deliveries': 342,
-      'status': 'Active', 'tab': 0,
-    },
-    {
-      'id': 'A002', 'name': 'Suresh Sharma', 'phone': '+91 87654 32109',
-      'vehicle': 'Three-wheeler', 'rating': 4.5, 'deliveries': 210,
-      'status': 'Active', 'tab': 0,
-    },
-    {
-      'id': 'A003', 'name': 'Mohan Das', 'phone': '+91 98765 43210',
-      'vehicle': 'Two-wheeler', 'rating': 0.0, 'deliveries': 0,
-      'status': 'Pending', 'tab': 2,
-    },
-    {
-      'id': 'A004', 'name': 'Pradeep Singh', 'phone': '+91 65432 10987',
-      'vehicle': 'Bicycle', 'rating': 4.2, 'deliveries': 89,
-      'status': 'Suspended', 'tab': 3,
-    },
-    {
-      'id': 'A005', 'name': 'Vijay Menon', 'phone': '+91 54321 09876',
-      'vehicle': 'Two-wheeler', 'rating': 0.0, 'deliveries': 0,
-      'status': 'Pending', 'tab': 2,
-    },
-  ];
+  final controller = Get.find<AdminController>();
 
   @override
   void initState() {
@@ -56,29 +28,29 @@ class _AdminAgentsScreenState extends State<AdminAgentsScreen>
   }
 
   List<Map<String, dynamic>> _agentsForTab(int tab) {
-    if (tab == 0) return _agents.cast<Map<String, dynamic>>();
-    return _agents.where((a) => a['tab'] == tab).toList().cast<Map<String, dynamic>>();
+    if (tab == 0) return controller.agents.cast<Map<String, dynamic>>();
+    String statusFilter = '';
+    switch (tab) {
+      case 1: statusFilter = 'Active'; break;
+      case 2: statusFilter = 'Pending'; break;
+      case 3: statusFilter = 'Suspended'; break;
+    }
+    return controller.agents.where((a) => a['status'] == statusFilter).toList().cast<Map<String, dynamic>>();
   }
 
   Color _statusColor(String status) {
     switch (status) {
-      case 'Active':
-        return AppColors.success;
-      case 'Pending':
-        return AppColors.warning;
-      default:
-        return AppColors.error;
+      case 'Active': return AppColors.success;
+      case 'Pending': return AppColors.warning;
+      default: return AppColors.error;
     }
   }
 
   Color _vehicleColor(String vehicle) {
     switch (vehicle) {
-      case 'Two-wheeler':
-        return AppColors.info;
-      case 'Three-wheeler':
-        return AppColors.secondary;
-      default:
-        return AppColors.primary;
+      case 'Two-wheeler': return AppColors.info;
+      case 'Three-wheeler': return AppColors.secondary;
+      default: return AppColors.primary;
     }
   }
 
@@ -106,7 +78,7 @@ class _AdminAgentsScreenState extends State<AdminAgentsScreen>
           ],
         ),
       ),
-      body: Column(
+      body: Obx(() => Column(
         children: [
           _buildStatsRow(),
           Expanded(
@@ -125,14 +97,14 @@ class _AdminAgentsScreenState extends State<AdminAgentsScreen>
             ),
           ),
         ],
-      ),
+      )),
     );
   }
 
   Widget _buildStatsRow() {
-    final total = _agents.length;
-    final active = _agents.where((a) => a['status'] == 'Active').length;
-    final pending = _agents.where((a) => a['status'] == 'Pending').length;
+    final total = controller.agents.length;
+    final active = controller.agents.where((a) => a['status'] == 'Active').length;
+    final pending = controller.agents.where((a) => a['status'] == 'Pending').length;
     return Container(
       color: AppColors.surface,
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -160,9 +132,13 @@ class _AdminAgentsScreenState extends State<AdminAgentsScreen>
   }
 
   Widget _buildAgentCard(Map<String, dynamic> agent) {
-    final status = agent['status'] as String;
-    final rating = agent['rating'] as double;
-    final vehicle = agent['vehicle'] as String;
+    final status = agent['status'] as String? ?? 'Pending';
+    final name = agent['name'] as String? ?? 'Unknown';
+    final phone = agent['phone'] as String? ?? 'No phone';
+    final rating = (agent['rating'] as num?)?.toDouble() ?? 0.0;
+    final vehicle = agent['vehicleType'] as String? ?? 'Two-wheeler';
+    final deliveries = agent['totalDeliveries'] as int? ?? 0;
+
     return Card(
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: InkWell(
@@ -178,7 +154,7 @@ class _AdminAgentsScreenState extends State<AdminAgentsScreen>
                     radius: 28,
                     backgroundColor: AppColors.primaryContainer,
                     child: Text(
-                      (agent['name'] as String).substring(0, 2).toUpperCase(),
+                      name.substring(0, name.length > 2 ? 2 : name.length).toUpperCase(),
                       style: AppTextStyles.titleMedium.copyWith(color: AppColors.primary),
                     ),
                   ),
@@ -202,8 +178,8 @@ class _AdminAgentsScreenState extends State<AdminAgentsScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(agent['name'] as String, style: AppTextStyles.titleMedium),
-                    Text(agent['phone'] as String, style: AppTextStyles.bodySmall),
+                    Text(name, style: AppTextStyles.titleMedium),
+                    Text(phone, style: AppTextStyles.bodySmall),
                     const SizedBox(height: 4),
                     Row(
                       children: [
@@ -223,26 +199,29 @@ class _AdminAgentsScreenState extends State<AdminAgentsScreen>
                           const Icon(Icons.star, size: 12, color: AppColors.secondary),
                           Text(' $rating', style: AppTextStyles.bodySmall),
                         ],
-                        if ((agent['deliveries'] as int) > 0) ...[
+                        if (deliveries > 0) ...[
                           const SizedBox(width: AppSpacing.sm),
                           const Icon(Icons.delivery_dining, size: 12, color: AppColors.textSecondary),
-                          Text(' ${agent['deliveries']}', style: AppTextStyles.bodySmall),
+                          Text(' $deliveries', style: AppTextStyles.bodySmall),
                         ],
                       ],
                     ),
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: _statusColor(status).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(AppRadius.full),
-                ),
-                child: Text(
-                  status,
-                  style: AppTextStyles.labelSmall.copyWith(color: _statusColor(status)),
-                ),
+              PopupMenuButton(
+                icon: Icon(Icons.more_vert, color: AppColors.textSecondary),
+                itemBuilder: (context) => [
+                  if (status == 'Pending')
+                    PopupMenuItem(
+                      onTap: () => controller.verifyAgent(agent['_id'], true),
+                      child: const Text('Approve Agent'),
+                    ),
+                  PopupMenuItem(
+                    onTap: () => controller.verifyAgent(agent['_id'], false),
+                    child: const Text('Suspend Agent', style: TextStyle(color: Colors.red)),
+                  ),
+                ],
               ),
             ],
           ),

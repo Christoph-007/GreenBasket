@@ -90,7 +90,7 @@ class ProfileScreen extends StatelessWidget {
                     IconButton(
                       icon: const Icon(Icons.edit_outlined,
                           color: AppColors.primary),
-                      onPressed: () {},
+                      onPressed: () => Get.toNamed(Routes.editProfile),
                     ),
                   ],
                 );
@@ -186,7 +186,7 @@ class ProfileScreen extends StatelessWidget {
               _MenuItem(
                 icon: Icons.help_outline,
                 label: 'Help & FAQ',
-                onTap: () {},
+                onTap: () => Get.snackbar('Help & FAQ', 'Help center coming soon'),
               ),
             ]),
             const SizedBox(height: 8),

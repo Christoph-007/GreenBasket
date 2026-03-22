@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:greenbasket_app/config/theme.dart';
+import '../../../data/repositories/merchant_repository.dart';
 
 class EditZoneScreen extends StatefulWidget {
   const EditZoneScreen({super.key});
@@ -10,32 +11,43 @@ class EditZoneScreen extends StatefulWidget {
 }
 
 class _EditZoneScreenState extends State<EditZoneScreen> {
-  // TODO: pre-fill from Get.arguments if editing an existing zone
+  final _repo = MerchantRepository();
   late final bool _isEditing;
+  late final String? _zoneId;
   late final TextEditingController _nameController;
   late final TextEditingController _chargeController;
   late final TextEditingController _minOrderController;
   late final TextEditingController _estTimeController;
   double _radius = 5.0;
+  bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
     final args = Get.arguments as Map<String, dynamic>?;
     _isEditing = args != null;
+    _zoneId = args?['_id'] as String? ?? args?['id'] as String?;
 
     _nameController =
         TextEditingController(text: args?['name'] as String? ?? '');
+
+    final charge = args?['charge'] ?? args?['deliveryCharge'];
     _chargeController = TextEditingController(
-        text: args != null
-            ? (args['charge'] as double).toStringAsFixed(0)
+        text: charge != null
+            ? (charge as num).toStringAsFixed(0)
             : '');
+
+    final minOrder = args?['minOrder'] ?? args?['minimumOrder'];
     _minOrderController = TextEditingController(
-        text: args != null
-            ? (args['minOrder'] as double).toStringAsFixed(0)
+        text: minOrder != null
+            ? (minOrder as num).toStringAsFixed(0)
             : '');
-    _estTimeController = TextEditingController(text: '45');
-    _radius = args?['radius'] as double? ?? 5.0;
+
+    final estTime = args?['estimatedTime'] ?? args?['deliveryTime'];
+    _estTimeController = TextEditingController(
+        text: estTime != null ? estTime.toString() : '45');
+
+    _radius = (args?['radius'] as num?)?.toDouble() ?? 5.0;
   }
 
   @override
@@ -47,18 +59,46 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
     super.dispose();
   }
 
-  void _saveZone() {
-    // TODO: call API to create/update zone
-    Get.back();
-    Get.snackbar(
-      _isEditing ? 'Zone Updated' : 'Zone Created',
-      _isEditing
-          ? 'Delivery zone saved successfully'
-          : 'New delivery zone added',
-      backgroundColor: AppColors.success,
-      colorText: Colors.white,
-      snackPosition: SnackPosition.BOTTOM,
-    );
+  Future<void> _saveZone() async {
+    if (_nameController.text.trim().isEmpty) {
+      Get.snackbar('Validation', 'Please enter a zone name',
+          snackPosition: SnackPosition.BOTTOM);
+      return;
+    }
+    setState(() => _isSaving = true);
+    try {
+      final payload = {
+        'name': _nameController.text.trim(),
+        'radius': _radius,
+        'charge': double.tryParse(_chargeController.text.trim()) ?? 0,
+        'deliveryCharge':
+            double.tryParse(_chargeController.text.trim()) ?? 0,
+        'minOrder': double.tryParse(_minOrderController.text.trim()) ?? 0,
+        'estimatedTime':
+            int.tryParse(_estTimeController.text.trim()) ?? 45,
+        'active': true,
+      };
+      if (_isEditing && _zoneId != null) {
+        await _repo.updateZone(_zoneId!, payload);
+      } else {
+        await _repo.createZone(payload);
+      }
+      Get.back(result: true);
+      Get.snackbar(
+        _isEditing ? 'Zone Updated' : 'Zone Created',
+        _isEditing
+            ? 'Delivery zone saved successfully'
+            : 'New delivery zone added',
+        backgroundColor: AppColors.success,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (_) {
+      Get.snackbar('Error', 'Could not save zone. Please try again.',
+          snackPosition: SnackPosition.BOTTOM);
+    } finally {
+      setState(() => _isSaving = false);
+    }
   }
 
   @override
@@ -224,8 +264,14 @@ class _EditZoneScreenState extends State<EditZoneScreen> {
           child: SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: _saveZone,
-              child: Text(_isEditing ? 'Save Zone' : 'Create Zone'),
+              onPressed: _isSaving ? null : _saveZone,
+              child: _isSaving
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
+                  : Text(_isEditing ? 'Save Zone' : 'Create Zone'),
             ),
           ),
         ),

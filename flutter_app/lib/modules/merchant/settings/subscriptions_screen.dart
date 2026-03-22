@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:greenbasket_app/config/theme.dart';
+import '../../../data/repositories/merchant_repository.dart';
 
 class SubscriptionsScreen extends StatefulWidget {
   const SubscriptionsScreen({super.key});
@@ -10,108 +11,102 @@ class SubscriptionsScreen extends StatefulWidget {
 }
 
 class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
+  final _repo = MerchantRepository();
+  bool _isLoading = true;
   String _filterStatus = 'All';
+  List<Map<String, dynamic>> _subscriptions = [];
 
-  // Mock subscriber data — TODO: fetch from API
-  final List<Map<String, dynamic>> _subscriptions = [
-    {
-      'customer': 'Priya Sharma',
-      'plan': 'Vegetable Box',
-      'frequency': 'Weekly',
-      'items': ['Tomatoes 2kg', 'Spinach 1 bunch', 'Carrots 500g'],
-      'nextDelivery': 'Mar 25',
-      'status': 'Active',
-      'amount': 450.0,
-    },
-    {
-      'customer': 'Rahul Gupta',
-      'plan': 'Dairy Pack',
-      'frequency': 'Daily',
-      'items': ['Full Cream Milk 1L', 'Curd 500g'],
-      'nextDelivery': 'Mar 23',
-      'status': 'Active',
-      'amount': 120.0,
-    },
-    {
-      'customer': 'Anjali Mehta',
-      'plan': 'Fruit Basket',
-      'frequency': 'Monthly',
-      'items': ['Mangoes 2kg', 'Bananas 1 dozen', 'Papaya 1 piece'],
-      'nextDelivery': 'Apr 1',
-      'status': 'Active',
-      'amount': 680.0,
-    },
-    {
-      'customer': 'Vikram Singh',
-      'plan': 'Organic Mix',
-      'frequency': 'Weekly',
-      'items': ['Mixed Greens 500g', 'Tomatoes 1kg'],
-      'nextDelivery': 'Mar 25',
-      'status': 'Paused',
-      'amount': 380.0,
-    },
-    {
-      'customer': 'Sunita Patel',
-      'plan': 'Vegetable Box',
-      'frequency': 'Weekly',
-      'items': ['Brinjal 500g', 'Bitter Gourd 500g', 'Ladies Finger 500g'],
-      'nextDelivery': '-',
-      'status': 'Cancelled',
-      'amount': 350.0,
-    },
-    {
-      'customer': 'Mohan Rao',
-      'plan': 'Dairy Pack',
-      'frequency': 'Daily',
-      'items': ['Toned Milk 500ml', 'Paneer 200g'],
-      'nextDelivery': 'Mar 23',
-      'status': 'Active',
-      'amount': 95.0,
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _fetchSubscriptions();
+  }
+
+  Future<void> _fetchSubscriptions() async {
+    try {
+      final subs = await _repo.getSubscriptions();
+      setState(() {
+        _subscriptions = subs;
+        _isLoading = false;
+      });
+    } catch (_) {
+      setState(() => _isLoading = false);
+    }
+  }
 
   List<Map<String, dynamic>> get _filtered {
     if (_filterStatus == 'All') return _subscriptions;
-    return _subscriptions
-        .where((s) => s['status'] == _filterStatus)
-        .toList();
+    return _subscriptions.where((s) {
+      final status = (s['status'] ?? '').toString();
+      return status.toLowerCase() == _filterStatus.toLowerCase();
+    }).toList();
   }
 
-  int get _activeCount =>
-      _subscriptions.where((s) => s['status'] == 'Active').length;
+  int get _activeCount => _subscriptions
+      .where((s) => (s['status'] ?? '').toString().toLowerCase() == 'active')
+      .length;
 
   double get _monthlyRevenue {
     return _subscriptions
-        .where((s) => s['status'] == 'Active')
+        .where(
+            (s) => (s['status'] ?? '').toString().toLowerCase() == 'active')
         .fold(0.0, (sum, s) {
-      final freq = s['frequency'] as String;
-      final amount = s['amount'] as double;
-      if (freq == 'Daily') return sum + amount * 30;
-      if (freq == 'Weekly') return sum + amount * 4;
+      final freq = (s['frequency'] ?? s['deliveryFrequency'] ?? '').toString();
+      final amount = (s['amount'] ?? s['price'] ?? 0).toDouble();
+      if (freq.toLowerCase() == 'daily') return sum + amount * 30;
+      if (freq.toLowerCase() == 'weekly') return sum + amount * 4;
       return sum + amount;
     });
   }
 
   Color _statusColor(String status) {
-    switch (status) {
-      case 'Active':
+    switch (status.toLowerCase()) {
+      case 'active':
         return AppColors.success;
-      case 'Paused':
+      case 'paused':
         return AppColors.warning;
-      case 'Cancelled':
+      case 'cancelled':
+      case 'canceled':
         return AppColors.error;
       default:
         return AppColors.textHint;
     }
   }
 
+  Future<void> _pauseSubscription(String id) async {
+    try {
+      await _repo.pauseSubscription(id);
+      await _fetchSubscriptions();
+      Get.snackbar('Paused', 'Subscription has been paused',
+          snackPosition: SnackPosition.BOTTOM);
+    } catch (_) {
+      Get.snackbar('Error', 'Could not pause subscription');
+    }
+  }
+
   void _showSubscriptionDetail(Map<String, dynamic> sub) {
+    final id = sub['_id'] ?? sub['id'] ?? '';
+    final customer =
+        sub['customer'] ?? sub['customerName'] ?? 'Customer';
+    final plan = sub['plan'] ?? sub['planName'] ?? 'Plan';
+    final freq =
+        sub['frequency'] ?? sub['deliveryFrequency'] ?? '';
+    final status = (sub['status'] ?? '').toString();
+    final items = (sub['items'] as List<dynamic>?)
+            ?.map((e) => e.toString())
+            .toList() ??
+        [];
+    final nextDelivery =
+        sub['nextDelivery'] ?? sub['nextDeliveryDate'] ?? '-';
+    final amount =
+        (sub['amount'] ?? sub['price'] ?? 0).toDouble();
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-            top: Radius.circular(AppRadius.xl)),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
       ),
       builder: (ctx) => DraggableScrollableSheet(
         expand: false,
@@ -142,7 +137,9 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                     radius: 24,
                     backgroundColor: AppColors.primaryContainer,
                     child: Text(
-                      (sub['customer'] as String)[0],
+                      customer.isNotEmpty
+                          ? customer[0].toUpperCase()
+                          : 'C',
                       style: AppTextStyles.titleLarge
                           .copyWith(color: AppColors.primary),
                     ),
@@ -152,28 +149,26 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(sub['customer'] as String,
-                            style: AppTextStyles.titleLarge),
-                        Text(
-                          '${sub['plan']} · ${sub['frequency']}',
-                          style: AppTextStyles.bodySmall,
-                        ),
+                        Text(customer, style: AppTextStyles.titleLarge),
+                        Text('$plan · $freq',
+                            style: AppTextStyles.bodySmall),
                       ],
                     ),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.xs),
                     decoration: BoxDecoration(
-                      color: _statusColor(sub['status'] as String)
-                          .withOpacity(0.1),
+                      color:
+                          _statusColor(status).withOpacity(0.1),
                       borderRadius:
                           BorderRadius.circular(AppRadius.full),
                     ),
                     child: Text(
-                      sub['status'] as String,
+                      status,
                       style: AppTextStyles.labelSmall.copyWith(
-                          color: _statusColor(sub['status'] as String)),
+                          color: _statusColor(status)),
                     ),
                   ),
                 ],
@@ -181,43 +176,47 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
               const SizedBox(height: AppSpacing.lg),
               const Divider(),
               const SizedBox(height: AppSpacing.md),
-              Text('Subscription Items',
-                  style: AppTextStyles.titleMedium),
-              const SizedBox(height: AppSpacing.sm),
-              ...(sub['items'] as List<String>).map((item) => Padding(
-                    padding:
-                        const EdgeInsets.only(bottom: AppSpacing.xs),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.circle,
-                            size: 6, color: AppColors.primary),
-                        const SizedBox(width: AppSpacing.sm),
-                        Text(item, style: AppTextStyles.bodyMedium),
-                      ],
-                    ),
-                  )),
-              const SizedBox(height: AppSpacing.md),
-              const Divider(),
-              const SizedBox(height: AppSpacing.md),
-              _detailRow('Frequency', sub['frequency'] as String),
-              _detailRow('Next Delivery', sub['nextDelivery'] as String),
+              if (items.isNotEmpty) ...[
+                Text('Subscription Items',
+                    style: AppTextStyles.titleMedium),
+                const SizedBox(height: AppSpacing.sm),
+                ...items.map((item) => Padding(
+                      padding:
+                          const EdgeInsets.only(bottom: AppSpacing.xs),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.circle,
+                              size: 6, color: AppColors.primary),
+                          const SizedBox(width: AppSpacing.sm),
+                          Text(item, style: AppTextStyles.bodyMedium),
+                        ],
+                      ),
+                    )),
+                const SizedBox(height: AppSpacing.md),
+                const Divider(),
+                const SizedBox(height: AppSpacing.md),
+              ],
+              _detailRow('Frequency', freq),
+              _detailRow('Next Delivery', nextDelivery),
               _detailRow(
                   'Amount',
-                  '₹${(sub['amount'] as double).toStringAsFixed(0)} per delivery'),
+                  '₹${amount.toStringAsFixed(0)} per delivery'),
               const SizedBox(height: AppSpacing.lg),
-              if (sub['status'] == 'Active')
+              if (status.toLowerCase() == 'active')
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () {
-                          // TODO: pause subscription
-                          Navigator.pop(ctx);
-                        },
+                        onPressed: id.isNotEmpty
+                            ? () {
+                                Navigator.pop(ctx);
+                                _pauseSubscription(id);
+                              }
+                            : null,
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.warning,
-                          side: const BorderSide(
-                              color: AppColors.warning),
+                          side:
+                              const BorderSide(color: AppColors.warning),
                         ),
                         child: const Text('Pause'),
                       ),
@@ -266,6 +265,11 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+          body: Center(child: CircularProgressIndicator()));
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -274,111 +278,122 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
           icon: const Icon(Icons.arrow_back_ios_new, size: 20),
           onPressed: () => Get.back(),
         ),
-      ),
-      body: Column(
-        children: [
-          // Stats header
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            color: AppColors.surface,
-            child: Row(
-              children: [
-                Expanded(
-                  child: _statItem(
-                    'Active Subscribers',
-                    '$_activeCount',
-                    AppColors.success,
-                    Icons.people_outline,
-                  ),
-                ),
-                Container(
-                    width: 1, height: 48, color: AppColors.border),
-                Expanded(
-                  child: _statItem(
-                    'Monthly Revenue',
-                    '₹${_monthlyRevenue.toStringAsFixed(0)}',
-                    AppColors.primary,
-                    Icons.currency_rupee,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-
-          // Filter chips
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-            child: Row(
-              children: ['All', 'Active', 'Paused', 'Cancelled']
-                  .map((status) {
-                final isSelected = _filterStatus == status;
-                return Padding(
-                  padding: const EdgeInsets.only(right: AppSpacing.sm),
-                  child: GestureDetector(
-                    onTap: () =>
-                        setState(() => _filterStatus = status),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md,
-                          vertical: AppSpacing.xs),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? AppColors.primary
-                            : AppColors.surface,
-                        borderRadius:
-                            BorderRadius.circular(AppRadius.full),
-                        border: Border.all(
-                          color: isSelected
-                              ? AppColors.primary
-                              : AppColors.border,
-                        ),
-                      ),
-                      child: Text(
-                        status,
-                        style: AppTextStyles.labelLarge.copyWith(
-                          color: isSelected
-                              ? Colors.white
-                              : AppColors.textSecondary,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-
-          // List
-          Expanded(
-            child: _filtered.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.subscriptions_outlined,
-                            size: 64, color: AppColors.textHint),
-                        const SizedBox(height: AppSpacing.md),
-                        Text(
-                          'No $_filterStatus subscriptions',
-                          style: AppTextStyles.titleMedium.copyWith(
-                              color: AppColors.textSecondary),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    itemCount: _filtered.length,
-                    itemBuilder: (ctx, i) {
-                      final sub = _filtered[i];
-                      return _buildSubscriptionCard(sub);
-                    },
-                  ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              setState(() => _isLoading = true);
+              _fetchSubscriptions();
+            },
           ),
         ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: _fetchSubscriptions,
+        child: Column(
+          children: [
+            // Stats header
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              color: AppColors.surface,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _statItem(
+                      'Active Subscribers',
+                      '$_activeCount',
+                      AppColors.success,
+                      Icons.people_outline,
+                    ),
+                  ),
+                  Container(
+                      width: 1, height: 48, color: AppColors.border),
+                  Expanded(
+                    child: _statItem(
+                      'Monthly Revenue',
+                      '₹${_monthlyRevenue.toStringAsFixed(0)}',
+                      AppColors.primary,
+                      Icons.currency_rupee,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+
+            // Filter chips
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+              child: Row(
+                children: ['All', 'Active', 'Paused', 'Cancelled']
+                    .map((status) {
+                  final isSelected = _filterStatus == status;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: AppSpacing.sm),
+                    child: GestureDetector(
+                      onTap: () =>
+                          setState(() => _filterStatus = status),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.md,
+                            vertical: AppSpacing.xs),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? AppColors.primary
+                              : AppColors.surface,
+                          borderRadius:
+                              BorderRadius.circular(AppRadius.full),
+                          border: Border.all(
+                            color: isSelected
+                                ? AppColors.primary
+                                : AppColors.border,
+                          ),
+                        ),
+                        child: Text(
+                          status,
+                          style: AppTextStyles.labelLarge.copyWith(
+                            color: isSelected
+                                ? Colors.white
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+
+            // List
+            Expanded(
+              child: _filtered.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.subscriptions_outlined,
+                              size: 64, color: AppColors.textHint),
+                          const SizedBox(height: AppSpacing.md),
+                          Text(
+                            'No $_filterStatus subscriptions',
+                            style: AppTextStyles.titleMedium.copyWith(
+                                color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      itemCount: _filtered.length,
+                      itemBuilder: (ctx, i) =>
+                          _buildSubscriptionCard(_filtered[i]),
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -417,9 +432,21 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   }
 
   Widget _buildSubscriptionCard(Map<String, dynamic> sub) {
-    final status = sub['status'] as String;
+    final customer =
+        sub['customer'] ?? sub['customerName'] ?? 'Customer';
+    final plan = sub['plan'] ?? sub['planName'] ?? 'Plan';
+    final freq =
+        sub['frequency'] ?? sub['deliveryFrequency'] ?? '';
+    final status = (sub['status'] ?? '').toString();
     final statusColor = _statusColor(status);
-    final items = sub['items'] as List<String>;
+    final items = (sub['items'] as List<dynamic>?)
+            ?.map((e) => e.toString())
+            .toList() ??
+        [];
+    final amount =
+        (sub['amount'] ?? sub['price'] ?? 0).toDouble();
+    final nextDelivery =
+        sub['nextDelivery'] ?? sub['nextDeliveryDate'] ?? '-';
 
     return GestureDetector(
       onTap: () => _showSubscriptionDetail(sub),
@@ -446,7 +473,9 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                     radius: 20,
                     backgroundColor: AppColors.primaryContainer,
                     child: Text(
-                      (sub['customer'] as String)[0],
+                      customer.isNotEmpty
+                          ? customer[0].toUpperCase()
+                          : 'C',
                       style: AppTextStyles.titleMedium
                           .copyWith(color: AppColors.primary),
                     ),
@@ -456,12 +485,10 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(sub['customer'] as String,
+                        Text(customer,
                             style: AppTextStyles.titleMedium),
-                        Text(
-                          '${sub['plan']} · ${sub['frequency']}',
-                          style: AppTextStyles.bodySmall,
-                        ),
+                        Text('$plan · $freq',
+                            style: AppTextStyles.bodySmall),
                       ],
                     ),
                   ),
@@ -477,14 +504,14 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                               BorderRadius.circular(AppRadius.full),
                         ),
                         child: Text(
-                          status,
+                          status.isNotEmpty ? status : 'Unknown',
                           style: AppTextStyles.labelSmall
                               .copyWith(color: statusColor),
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '₹${(sub['amount'] as double).toStringAsFixed(0)}',
+                        '₹${amount.toStringAsFixed(0)}',
                         style: AppTextStyles.titleMedium,
                       ),
                     ],
@@ -504,15 +531,17 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                 children: [
                   Expanded(
                     child: Text(
-                      items.take(2).join(', ') +
-                          (items.length > 2
-                              ? ' +${items.length - 2} more'
-                              : ''),
+                      items.isNotEmpty
+                          ? items.take(2).join(', ') +
+                              (items.length > 2
+                                  ? ' +${items.length - 2} more'
+                                  : '')
+                          : 'No items specified',
                       style: AppTextStyles.bodySmall,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  if (status == 'Active') ...[
+                  if (status.toLowerCase() == 'active') ...[
                     const SizedBox(width: AppSpacing.sm),
                     Row(
                       children: [
@@ -521,7 +550,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                             color: AppColors.textSecondary),
                         const SizedBox(width: 4),
                         Text(
-                          'Next: ${sub['nextDelivery']}',
+                          'Next: $nextDelivery',
                           style: AppTextStyles.labelSmall,
                         ),
                       ],

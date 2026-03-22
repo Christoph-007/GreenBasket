@@ -1,42 +1,54 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:greenbasket_app/config/theme.dart';
+import '../admin_controller.dart';
 
-class AdminOrderDetailScreen extends StatelessWidget {
-  const AdminOrderDetailScreen({super.key});
+class AdminOrderDetailScreen extends StatefulWidget {
+  final String? orderId;
+  const AdminOrderDetailScreen({super.key, this.orderId});
 
-  // Mock order data — replace with API call
-  static const _order = {
-    'id': 'GB2024001',
-    'status': 'Out for Delivery',
-    'statusIndex': 3,
-    'customer': {'name': 'Priya Sharma', 'phone': '+91 98765 43210', 'address': '42 MG Road, Koramangala, Bangalore - 560034'},
-    'merchant': {'name': 'Fresh Farms Organics', 'phone': '+91 87654 32109'},
-    'agent': {'name': 'Ravi Kumar', 'phone': '+91 76543 21098', 'vehicle': 'Two-wheeler'},
-  };
+  @override
+  State<AdminOrderDetailScreen> createState() => _AdminOrderDetailScreenState();
+}
 
-  static final _items = [
-    {'name': 'Organic Spinach 500g', 'qty': 2, 'price': '₹120'},
-    {'name': 'Fresh Tomatoes 1kg', 'qty': 1, 'price': '₹60'},
-    {'name': 'Baby Carrots 250g', 'qty': 3, 'price': '₹45'},
-  ];
+class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
+  final controller = Get.find<AdminController>();
+  final RxMap<String, dynamic> _order = <String, dynamic>{}.obs;
+  final RxBool _isLoading = true.obs;
 
-  static final _activityLog = [
-    {'time': '10:32 AM', 'event': 'Order placed by Priya Sharma', 'date': 'Today'},
-    {'time': '10:35 AM', 'event': 'Order confirmed by Fresh Farms Organics', 'date': 'Today'},
-    {'time': '11:00 AM', 'event': 'Order preparation started', 'date': 'Today'},
-    {'time': '11:45 AM', 'event': 'Order picked up by Ravi Kumar', 'date': 'Today'},
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _fetchOrderDetail();
+  }
+
+  Future<void> _fetchOrderDetail() async {
+    final id = widget.orderId ?? Get.arguments?['id'];
+    if (id == null) {
+      Get.back();
+      return;
+    }
+    _isLoading.value = true;
+    try {
+      final data = await controller.getOrderDetail(id);
+      _order.value = data;
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to load order details');
+    } finally {
+      _isLoading.value = false;
+    }
+  }
 
   static const _statuses = ['Placed', 'Confirmed', 'Preparing', 'Out for Delivery', 'Delivered'];
 
   Color _statusColor(String status) {
-    switch (status) {
-      case 'Delivered':
+    switch (status.toLowerCase()) {
+      case 'delivered':
         return AppColors.success;
-      case 'Cancelled':
+      case 'cancelled':
         return AppColors.error;
-      case 'Out for Delivery':
+      case 'out for delivery':
+      case 'in transit':
         return AppColors.info;
       default:
         return AppColors.warning;
@@ -50,7 +62,7 @@ class AdminOrderDetailScreen extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
         title: Text('$action?', style: AppTextStyles.titleLarge),
         content: Text(
-          'Are you sure you want to $action order #${_order['id']}? This action cannot be undone.',
+          'Are you sure you want to $action order #${_order['orderNumber'] ?? _order['_id']}? This action cannot be undone.',
           style: AppTextStyles.bodyMedium,
         ),
         actions: [
@@ -60,9 +72,9 @@ class AdminOrderDetailScreen extends StatelessWidget {
               backgroundColor: action == 'Cancel Order' ? AppColors.error : AppColors.primary,
             ),
             onPressed: () {
-              // TODO: Call API to perform action
+              // TODO: Call API in controller
               Navigator.pop(ctx);
-              Get.snackbar('Action Taken', '$action has been applied to order #${_order['id']}.',
+              Get.snackbar('Action Taken', '$action has been applied.',
                   backgroundColor: AppColors.primary, colorText: Colors.white);
             },
             child: const Text('Confirm'),
@@ -77,55 +89,73 @@ class AdminOrderDetailScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text('Order #${_order['id']}'),
+        title: Obx(() => Text('Order #${_order['orderNumber'] ?? _order['_id'] ?? 'Loading...'}')),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, size: 18),
           onPressed: () => Get.back(),
         ),
         actions: [
-          Container(
-            margin: const EdgeInsets.only(right: AppSpacing.md, top: 10, bottom: 10),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: _statusColor(_order['status'] as String).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(AppRadius.full),
-            ),
-            child: Text(
-              _order['status'] as String,
-              style: AppTextStyles.labelSmall.copyWith(
-                color: _statusColor(_order['status'] as String),
+          Obx(() {
+            final status = _order['status']?.toString() ?? 'Pending';
+            return Container(
+              margin: const EdgeInsets.only(right: AppSpacing.md, top: 10, bottom: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: _statusColor(status).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(AppRadius.full),
               ),
-            ),
-          ),
+              child: Text(
+                status,
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: _statusColor(status),
+                ),
+              ),
+            );
+          }),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildTimeline(),
-            const SizedBox(height: AppSpacing.md),
-            _buildCustomerCard(),
-            const SizedBox(height: AppSpacing.sm),
-            _buildMerchantCard(),
-            const SizedBox(height: AppSpacing.sm),
-            _buildAgentCard(context),
-            const SizedBox(height: AppSpacing.md),
-            _buildItemsList(),
-            const SizedBox(height: AppSpacing.md),
-            _buildAdminActions(context),
-            const SizedBox(height: AppSpacing.md),
-            _buildActivityLog(),
-            const SizedBox(height: AppSpacing.lg),
-          ],
-        ),
-      ),
+      body: Obx(() {
+        if (_isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (_order.isEmpty) {
+          return const Center(child: Text('Order not found'));
+        }
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildTimeline(),
+              const SizedBox(height: AppSpacing.md),
+              _buildCustomerCard(),
+              const SizedBox(height: AppSpacing.sm),
+              _buildMerchantCard(),
+              const SizedBox(height: AppSpacing.sm),
+              _buildAgentCard(context),
+              const SizedBox(height: AppSpacing.md),
+              _buildItemsList(),
+              const SizedBox(height: AppSpacing.md),
+              _buildAdminActions(context),
+              const SizedBox(height: AppSpacing.md),
+              _buildActivityLog(),
+              const SizedBox(height: AppSpacing.lg),
+            ],
+          ),
+        );
+      }),
     );
   }
 
   Widget _buildTimeline() {
-    final currentIndex = _order['statusIndex'] as int;
+    final status = _order['status']?.toString().toLowerCase() ?? '';
+    int currentIndex = 0;
+    if (status == 'confirmed') currentIndex = 1;
+    if (status == 'preparing') currentIndex = 2;
+    if (status == 'out for delivery' || status == 'in transit') currentIndex = 3;
+    if (status == 'delivered') currentIndex = 4;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.md),
@@ -211,7 +241,7 @@ class AdminOrderDetailScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SizedBox(
-                        width: 70,
+                        width: 80,
                         child: Text(row['label']!, style: AppTextStyles.bodySmall),
                       ),
                       Expanded(child: Text(row['value']!, style: AppTextStyles.bodyMedium)),
@@ -225,42 +255,44 @@ class AdminOrderDetailScreen extends StatelessWidget {
   }
 
   Widget _buildCustomerCard() {
-    final c = _order['customer'] as Map<String, String>;
+    final c = _order['customer'] as Map<String, dynamic>? ?? {};
+    final address = _order['shippingAddress'] ?? c['address'] ?? 'N/A';
     return _buildInfoCard(
       title: 'Customer',
       icon: Icons.person_outline,
       iconColor: AppColors.info,
       rows: [
-        {'label': 'Name', 'value': c['name']!},
-        {'label': 'Phone', 'value': c['phone']!},
-        {'label': 'Address', 'value': c['address']!},
+        {'label': 'Name', 'value': c['name']?.toString() ?? 'Guest'},
+        {'label': 'Phone', 'value': c['phone']?.toString() ?? 'N/A'},
+        {'label': 'Address', 'value': address.toString()},
       ],
     );
   }
 
   Widget _buildMerchantCard() {
-    final m = _order['merchant'] as Map<String, String>;
+    final m = _order['merchant'] as Map<String, dynamic>? ?? {};
     return _buildInfoCard(
       title: 'Merchant',
       icon: Icons.store_outlined,
       iconColor: AppColors.primary,
       rows: [
-        {'label': 'Store', 'value': m['name']!},
-        {'label': 'Phone', 'value': m['phone']!},
+        {'label': 'Store', 'value': m['name']?.toString() ?? 'N/A'},
+        {'label': 'Phone', 'value': m['phone']?.toString() ?? 'N/A'},
       ],
     );
   }
 
   Widget _buildAgentCard(BuildContext context) {
-    final a = _order['agent'] as Map<String, String>;
+    final a = _order['agent'] as Map<String, dynamic>? ?? {};
+    final hasAgent = a.isNotEmpty && a['name'] != null;
     return _buildInfoCard(
       title: 'Delivery Agent',
       icon: Icons.delivery_dining,
       iconColor: AppColors.secondary,
       rows: [
-        {'label': 'Name', 'value': a['name']!},
-        {'label': 'Phone', 'value': a['phone']!},
-        {'label': 'Vehicle', 'value': a['vehicle']!},
+        {'label': 'Name', 'value': hasAgent ? a['name'].toString() : 'Not Assigned'},
+        {'label': 'Phone', 'value': hasAgent ? (a['phone']?.toString() ?? 'N/A') : '-'},
+        if (hasAgent) {'label': 'Vehicle', 'value': a['vehicle']?.toString() ?? 'N/A'},
       ],
       trailing: OutlinedButton(
         onPressed: () {
@@ -271,12 +303,13 @@ class AdminOrderDetailScreen extends StatelessWidget {
           minimumSize: Size.zero,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
-        child: const Text('Reassign', style: TextStyle(fontSize: 12)),
+        child: Text(hasAgent ? 'Reassign' : 'Assign', style: const TextStyle(fontSize: 12)),
       ),
     );
   }
 
   Widget _buildItemsList() {
+    final items = (_order['items'] as List?) ?? [];
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.md),
@@ -285,39 +318,41 @@ class AdminOrderDetailScreen extends StatelessWidget {
           children: [
             const Text('Order Items', style: AppTextStyles.titleLarge),
             const Divider(),
-            ..._items.map((item) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryContainer,
-                          borderRadius: BorderRadius.circular(AppRadius.sm),
-                        ),
-                        child: const Icon(Icons.eco_outlined, color: AppColors.primary, size: 20),
+            ...items.map((item) {
+              final product = item['product'] as Map<String, dynamic>? ?? {};
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryContainer,
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
                       ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(item['name'] as String, style: AppTextStyles.bodyMedium),
-                            Text('Qty: ${item['qty']}', style: AppTextStyles.bodySmall),
-                          ],
-                        ),
+                      child: const Icon(Icons.eco_outlined, color: AppColors.primary, size: 20),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(product['name']?.toString() ?? 'N/A', style: AppTextStyles.bodyMedium),
+                          Text('Qty: ${item['quantity'] ?? item['qty'] ?? 0}', style: AppTextStyles.bodySmall),
+                        ],
                       ),
-                      Text(item['price'] as String, style: AppTextStyles.labelLarge),
-                    ],
-                  ),
-                )),
+                    ),
+                    Text('₹${item['price'] ?? 0}', style: AppTextStyles.labelLarge),
+                  ],
+                ),
+              );
+            }).toList(),
             const Divider(),
-            _totalRow('Subtotal', '₹375'),
-            _totalRow('Delivery Fee', '₹30'),
-            _totalRow('Discount', '-₹0'),
+            _totalRow('Subtotal', '₹${_order['subtotal'] ?? 0}'),
+            _totalRow('Delivery Fee', '₹${_order['deliveryFee'] ?? 0}'),
             const Divider(),
-            _totalRow('Total', '₹405', isBold: true),
+            _totalRow('Total', '₹${_order['totalAmount'] ?? _order['total'] ?? 0}', isBold: true),
           ],
         ),
       ),
@@ -382,6 +417,9 @@ class AdminOrderDetailScreen extends StatelessWidget {
   }
 
   Widget _buildActivityLog() {
+    final logs = (_order['activityLog'] as List?) ?? [];
+    if (logs.isEmpty) return const SizedBox.shrink();
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.md),
@@ -390,10 +428,11 @@ class AdminOrderDetailScreen extends StatelessWidget {
           children: [
             const Text('Activity Log', style: AppTextStyles.titleLarge),
             const SizedBox(height: AppSpacing.sm),
-            ..._activityLog.asMap().entries.map((e) {
+            ...logs.asMap().entries.map((e) {
               final i = e.key;
-              final log = e.value;
-              final isLast = i == _activityLog.length - 1;
+              final log = e.value as Map<String, dynamic>;
+              final isLast = i == logs.length - 1;
+              final time = log['createdAt']?.toString().split('T')[1].substring(0, 5) ?? 'N/A';
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -422,15 +461,15 @@ class AdminOrderDetailScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(log['event']!, style: AppTextStyles.bodyMedium),
-                          Text('${log['date']} at ${log['time']}', style: AppTextStyles.bodySmall),
+                          Text(log['action']?.toString() ?? 'Event', style: AppTextStyles.bodyMedium),
+                          Text('at $time', style: AppTextStyles.bodySmall),
                         ],
                       ),
                     ),
                   ),
                 ],
               );
-            }),
+            }).toList(),
           ],
         ),
       ),

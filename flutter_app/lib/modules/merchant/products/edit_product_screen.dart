@@ -1,40 +1,66 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:greenbasket_app/config/theme.dart';
+import 'package:greenbasket_app/data/models/product_model.dart';
+import '../../../data/repositories/merchant_repository.dart';
 
 class EditProductScreen extends StatefulWidget {
-  const EditProductScreen({super.key});
+  final ProductModel product;
+  const EditProductScreen({super.key, required this.product});
 
   @override
   State<EditProductScreen> createState() => _EditProductScreenState();
 }
 
 class _EditProductScreenState extends State<EditProductScreen> {
+  final _repo = MerchantRepository();
   int _currentStep = 0;
   final _formKey = GlobalKey<FormState>();
+  bool _isSaving = false;
+  bool _isDeleting = false;
 
-  // Pre-filled mock data — TODO: replace with product from API/args
-  final _nameController = TextEditingController(text: 'Fresh Tomatoes');
-  final _descController = TextEditingController(
-      text: 'Farm-fresh tomatoes harvested daily. Rich in vitamins and antioxidants.');
-  String? _selectedCategory = 'Vegetables';
-  String? _selectedSubcategory = 'Seasonal';
+  late final TextEditingController _nameController;
+  late final TextEditingController _descController;
+  String? _selectedCategory;
+  String? _selectedSubcategory;
 
-  final _priceController = TextEditingController(text: '45');
-  final _mrpController = TextEditingController(text: '60');
-  final _stockController = TextEditingController(text: '120');
-  String _selectedUnit = 'kg';
-  final _minOrderController = TextEditingController(text: '1');
-  final _prepTimeController = TextEditingController(text: '15');
+  late final TextEditingController _priceController;
+  late final TextEditingController _mrpController;
+  late final TextEditingController _stockController;
+  late String _selectedUnit;
+  late final TextEditingController _minOrderController;
+  late final TextEditingController _prepTimeController;
 
   bool _isOrganic = true;
   final _tagsController = TextEditingController();
-  List<String> _tags = ['fresh', 'seasonal', 'local'];
-  final _keywordsController =
-      TextEditingController(text: 'tomato, fresh tomato, red tomato');
+  List<String> _tags = [];
+  late final TextEditingController _keywordsController;
 
-  // Mock existing images
-  final List<bool> _existingImages = [true, true, false];
+  @override
+  void initState() {
+    super.initState();
+    final p = widget.product;
+    _nameController = TextEditingController(text: p.name);
+    _descController = TextEditingController(text: p.description);
+    _selectedCategory = p.categoryName.isNotEmpty ? p.categoryName : null;
+    _selectedSubcategory = null;
+    _priceController = TextEditingController(text: p.price.toString());
+    _mrpController = TextEditingController(
+        text: (p.price * 1.2).toStringAsFixed(0));
+    _stockController = TextEditingController(text: p.stock.toString());
+    _selectedUnit = p.unit.isNotEmpty ? p.unit : 'kg';
+    _minOrderController = TextEditingController(text: '1');
+    _prepTimeController = TextEditingController(text: '15');
+    _isOrganic = p.isOrganic;
+    _keywordsController =
+        TextEditingController(text: p.name.toLowerCase());
+    // Initialise image slots from the product's images list (max 3 shown)
+    _existingImages = List.generate(
+        3, (i) => i < p.images.length && p.images[i].isNotEmpty);
+  }
+
+  // Tracks which image slots are filled from the product's images list
+  late final List<bool> _existingImages;
 
   final List<String> _categories = ['Vegetables', 'Fruits', 'Dairy', 'Grains'];
   final Map<String, List<String>> _subcategories = {
@@ -68,16 +94,37 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
   void _removeTag(String tag) => setState(() => _tags.remove(tag));
 
-  void _saveChanges() {
-    // TODO: call API to update product
-    Get.back();
-    Get.snackbar(
-      'Updated',
-      'Product updated successfully!',
-      backgroundColor: AppColors.success,
-      colorText: Colors.white,
-      snackPosition: SnackPosition.BOTTOM,
-    );
+  Future<void> _saveChanges() async {
+    setState(() => _isSaving = true);
+    try {
+      await _repo.updateProduct(widget.product.id, {
+        'name': _nameController.text.trim(),
+        'description': _descController.text.trim(),
+        'category': _selectedCategory,
+        'price': double.tryParse(_priceController.text.trim()) ?? widget.product.price,
+        'mrp': double.tryParse(_mrpController.text.trim()),
+        'stock': int.tryParse(_stockController.text.trim()) ?? widget.product.stock,
+        'unit': _selectedUnit,
+        'minOrderQty': int.tryParse(_minOrderController.text.trim()) ?? 1,
+        'prepTime': int.tryParse(_prepTimeController.text.trim()) ?? 15,
+        'isOrganic': _isOrganic,
+        'tags': _tags,
+        'keywords': _keywordsController.text.trim(),
+      });
+      Get.back(result: true);
+      Get.snackbar(
+        'Updated',
+        'Product updated successfully!',
+        backgroundColor: AppColors.success,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (_) {
+      Get.snackbar('Error', 'Could not update product. Please try again.',
+          snackPosition: SnackPosition.BOTTOM);
+    } finally {
+      setState(() => _isSaving = false);
+    }
   }
 
   void _deleteProduct() {
@@ -88,7 +135,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
             borderRadius: BorderRadius.circular(AppRadius.lg)),
         title: Text('Delete Product', style: AppTextStyles.titleLarge),
         content: Text(
-          'Are you sure you want to delete "Fresh Tomatoes"? This action cannot be undone.',
+          'Are you sure you want to delete "${widget.product.name}"? This action cannot be undone.',
           style: AppTextStyles.bodyMedium
               .copyWith(color: AppColors.textSecondary),
         ),
@@ -98,10 +145,25 @@ class _EditProductScreenState extends State<EditProductScreen> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
-              // TODO: call API to delete product
-              Get.back();
+              setState(() => _isDeleting = true);
+              try {
+                await _repo.deleteProduct(widget.product.id);
+                Get.back(result: true);
+                Get.snackbar(
+                  'Deleted',
+                  'Product removed successfully',
+                  backgroundColor: AppColors.success,
+                  colorText: Colors.white,
+                  snackPosition: SnackPosition.BOTTOM,
+                );
+              } catch (_) {
+                Get.snackbar('Error', 'Could not delete product.',
+                    snackPosition: SnackPosition.BOTTOM);
+              } finally {
+                if (mounted) setState(() => _isDeleting = false);
+              }
             },
             style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.error),
@@ -124,10 +186,15 @@ class _EditProductScreenState extends State<EditProductScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: _saveChanges,
-            child: Text('Save',
-                style: AppTextStyles.labelLarge
-                    .copyWith(color: AppColors.primary)),
+            onPressed: _isSaving ? null : _saveChanges,
+            child: _isSaving
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : Text('Save',
+                    style: AppTextStyles.labelLarge
+                        .copyWith(color: AppColors.primary)),
           ),
         ],
         bottom: PreferredSize(
@@ -499,20 +566,33 @@ class _EditProductScreenState extends State<EditProductScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _saveChanges,
-                child: const Text('Update Product'),
+                onPressed: _isSaving ? null : _saveChanges,
+                child: _isSaving
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
+                    : const Text('Update Product'),
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
             SizedBox(
               width: double.infinity,
               child: TextButton(
-                onPressed: _deleteProduct,
-                child: Text(
-                  'Delete Product',
-                  style: AppTextStyles.labelLarge
-                      .copyWith(color: AppColors.error),
-                ),
+                onPressed: (_isDeleting || _isSaving) ? null : _deleteProduct,
+                child: _isDeleting
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.error))
+                    : Text(
+                        'Delete Product',
+                        style: AppTextStyles.labelLarge
+                            .copyWith(color: AppColors.error),
+                      ),
               ),
             ),
           ],

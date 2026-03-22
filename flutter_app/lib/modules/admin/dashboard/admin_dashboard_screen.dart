@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:greenbasket_app/config/theme.dart';
-import 'package:greenbasket_app/modules/auth/auth_controller.dart';
 import 'package:greenbasket_app/modules/admin/admin_controller.dart';
+import 'package:greenbasket_app/modules/admin/users/admin_users_screen.dart';
+import 'package:greenbasket_app/modules/admin/orders/admin_orders_screen.dart';
+import 'package:greenbasket_app/modules/admin/orders/admin_order_detail_screen.dart';
+import 'package:greenbasket_app/modules/admin/merchants/admin_merchants_screen.dart';
+import 'package:greenbasket_app/modules/admin/agents/admin_agents_screen.dart';
+import '../widgets/admin_drawer.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -18,6 +23,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      drawer: const AdminDrawer(),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -48,18 +54,31 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
             children: [
-              Text(
-                'Good morning',
-                style: AppTextStyles.bodyMedium.copyWith(
-                  color: Colors.white.withOpacity(0.8),
-                ),
+              Builder(
+                builder: (context) {
+                  return IconButton(
+                    icon: const Icon(Icons.menu, color: Colors.white),
+                    onPressed: () => Scaffold.of(context).openDrawer(),
+                  );
+                }
               ),
-              const Text(
-                'Admin Dashboard',
-                style: AppTextStyles.displayMedium,
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Good morning',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: Colors.white.withOpacity(0.8),
+                    ),
+                  ),
+                  const Text(
+                    'Admin Dashboard',
+                    style: AppTextStyles.displayMedium,
+                  ),
+                ],
               ),
             ],
           ),
@@ -75,32 +94,43 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget _buildOverviewStats() {
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.md),
-      child: Row(
+      child: Obx(() => Row(
         children: [
-          _statCard('Total Users', '${controller.totalUsers.value}', Icons.people_outline, Colors.blue.shade50),
+          _statCard('Total Users', '${controller.totalUsersCount.value}', Icons.people_outline, Colors.blue.shade50, onTap: () {
+            Get.to(() => const AdminUsersScreen());
+          }),
           const SizedBox(width: AppSpacing.md),
-          _statCard('Orders Today', '${controller.ordersToday.value}', Icons.shopping_basket_outlined, Colors.green.shade50),
+          _statCard('Orders Today', '${controller.totalOrdersCount.value}', Icons.shopping_basket_outlined, Colors.green.shade50, onTap: () {
+            Get.to(() => const AdminOrdersScreen());
+          }),
         ],
-      ),
+      )),
     );
   }
 
-  Widget _statCard(String label, String value, IconData icon, Color bgColor) {
+  Widget _statCard(String label, String value, IconData icon, Color bgColor, {VoidCallback? onTap}) {
     return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(
-          color: bgColor,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(AppRadius.md),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: AppColors.textPrimary),
-            const SizedBox(height: 12),
-            Text(value, style: AppTextStyles.displaySmall),
-            Text(label, style: AppTextStyles.bodySmall),
-          ],
+          child: Container(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, color: AppColors.textPrimary),
+                const SizedBox(height: 12),
+                Text(value, style: AppTextStyles.displaySmall),
+                Text(label, style: AppTextStyles.bodySmall),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -109,13 +139,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget _buildMetrics() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-      child: Row(
+      child: Obx(() => Row(
         children: [
-          _metricItem('Revenue', controller.revenue.value),
+          _metricItem('Revenue', controller.revenueValue.value),
           _metricDivider(),
-          _metricItem('Pending Actions', '${controller.pendingActions.value}'),
+          _metricItem('Pending Actions', '${controller.pendingActionsCount.value}'),
         ],
-      ),
+      )),
     );
   }
 
@@ -142,33 +172,44 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         children: [
           const Text('Pending Actions', style: AppTextStyles.titleLarge),
           const SizedBox(height: 12),
-          Row(
+          Obx(() => Row(
             children: [
-              _actionCard('${controller.merchantApprovals.value} Merchant Approvals', Colors.orange.shade100, Colors.orange),
+              _actionCard('${controller.merchantApprovalsCount.value} Merchant Approvals', Colors.orange.shade100, Colors.orange, onTap: () {
+                Get.to(() => const AdminMerchantsScreen());
+              }),
               const SizedBox(width: AppSpacing.md),
-              _actionCard('${controller.agentVerifications.value} Agent Verifications', Colors.blue.shade100, Colors.blue),
+              _actionCard('${controller.agentVerificationsCount.value} Agent Verifications', Colors.blue.shade100, Colors.blue, onTap: () {
+                Get.to(() => const AdminAgentsScreen());
+              }),
             ],
-          ),
+          )),
         ],
       ),
     );
   }
 
-  Widget _actionCard(String text, Color bgColor, Color iconColor) {
+  Widget _actionCard(String text, Color bgColor, Color iconColor, {VoidCallback? onTap}) {
     return Expanded(
-      child: Container(
-        height: 80,
-        padding: const EdgeInsets.all(AppSpacing.sm),
-        decoration: BoxDecoration(
-          color: bgColor,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(AppRadius.md),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.report_gmailerrorred, color: iconColor),
-            const SizedBox(width: 8),
-            Expanded(child: Text(text, style: AppTextStyles.labelSmall.copyWith(color: Colors.black))),
-          ],
+          child: Container(
+            height: 80,
+            padding: const EdgeInsets.all(AppSpacing.sm),
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.report_gmailerrorred, color: iconColor),
+                const SizedBox(width: 8),
+                Expanded(child: Text(text, style: AppTextStyles.labelSmall.copyWith(color: Colors.black))),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -184,20 +225,25 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('Recent Orders', style: AppTextStyles.titleLarge),
-              TextButton(onPressed: () {}, child: const Text('View All')),
+              TextButton(onPressed: () {
+                Get.to(() => const AdminOrdersScreen());
+              }, child: const Text('View All')),
             ],
           ),
           Obx(() => ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: controller.recentOrders.length,
+                itemCount: controller.recentOrdersList.length,
                 itemBuilder: (context, index) {
-                  final order = controller.recentOrders[index];
+                  final order = controller.recentOrdersList[index];
                   return ListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: Text('Order #${order['id']}'),
-                    subtitle: const Text('2 mins ago'),
-                    trailing: _statusBadge(order['status'] as String, order['color'] as String),
+                    title: Text('Order #${order['orderNumber'] ?? order['id']}'),
+                    subtitle: Text(order['createdAt'] != null ? 'Just now' : '2 mins ago'),
+                    trailing: _statusBadge(order['status'] as String? ?? 'Pending', 'info'),
+                    onTap: () {
+                      Get.to(() => const AdminOrderDetailScreen());
+                    },
                   );
                 },
               )),
@@ -208,10 +254,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   Widget _statusBadge(String status, String colorType) {
     Color color;
-    switch (colorType) {
-      case 'success': color = AppColors.success; break;
-      case 'warning': color = AppColors.warning; break;
-      case 'info': color = AppColors.info; break;
+    switch (status.toLowerCase()) {
+      case 'delivered': color = AppColors.success; break;
+      case 'pending': color = AppColors.warning; break;
+      case 'preparing': color = AppColors.info; break;
       default: color = AppColors.textSecondary;
     }
     return Container(
@@ -220,7 +266,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Text(status, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold)),
+      child: Text(status.capitalizeFirst ?? '', style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold)),
     );
   }
 }

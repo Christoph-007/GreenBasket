@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:greenbasket_app/config/theme.dart';
+import 'package:greenbasket_app/data/models/order_model.dart';
+import 'package:greenbasket_app/utils/helpers.dart';
 import 'package:greenbasket_app/modules/auth/auth_controller.dart';
 import 'package:greenbasket_app/modules/merchant/merchant_controller.dart';
+import '../orders/merchant_order_detail_screen.dart';
+import '../widgets/merchant_drawer.dart';
 
 class MerchantDashboardScreen extends StatefulWidget {
   const MerchantDashboardScreen({super.key});
@@ -13,11 +17,13 @@ class MerchantDashboardScreen extends StatefulWidget {
 
 class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
   final controller = Get.put(MerchantController());
+  final authController = Get.find<AuthController>();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      drawer: const MerchantDrawer(),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -48,6 +54,17 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              Row(
+            children: [
+              Builder(
+                builder: (context) {
+                  return IconButton(
+                    icon: const Icon(Icons.menu, color: Colors.white),
+                    onPressed: () => Scaffold.of(context).openDrawer(),
+                  );
+                }
+              ),
+              const SizedBox(width: 8),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -57,18 +74,23 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
                       color: Colors.white.withOpacity(0.8),
                     ),
                   ),
-                  Text(
-                    "Priya's Organic Store",
+                  Obx(() => Text(
+                    authController.user.value?.name ?? "Merchant Store",
                     style: AppTextStyles.headlineLarge.copyWith(color: Colors.white),
-                  ),
+                  )),
                 ],
-              ),
-              CircleAvatar(
-                backgroundColor: Colors.white.withOpacity(0.2),
-                child: const Text('PO', style: TextStyle(color: Colors.white)),
               ),
             ],
           ),
+          Obx(() => CircleAvatar(
+            backgroundColor: Colors.white.withOpacity(0.2),
+            child: Text(
+              (authController.user.value?.name ?? "M")[0].toUpperCase(),
+              style: const TextStyle(color: Colors.white),
+            ),
+          )),
+        ],
+      ),
           const SizedBox(height: AppSpacing.md),
           Container(
             padding: const EdgeInsets.symmetric(
@@ -165,7 +187,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
     );
   }
 
-  Widget _orderCard(Map<String, dynamic> order) {
+  Widget _orderCard(OrderModel order) {
     return Card(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Padding(
@@ -176,24 +198,34 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Order #${order['id']}', style: AppTextStyles.titleMedium),
-                Text(order['time'], style: AppTextStyles.bodySmall),
+                Text('Order #${order.orderNumber}',
+                    style: AppTextStyles.titleMedium),
               ],
             ),
             const Divider(height: 24),
-            Text(order['customer'], style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.bold)),
+            Text('Order ID: ${order.id.substring(order.id.length - 8)}',
+                style: AppTextStyles.bodyLarge
+                    .copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
-            Text(order['items'], style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary)),
+            Text('${order.items.length} items',
+                style: AppTextStyles.bodyMedium
+                    .copyWith(color: AppColors.textSecondary)),
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(order['amount'], style: AppTextStyles.titleLarge.copyWith(color: AppColors.primary)),
+                Text(AppHelpers.formatCurrency(order.total),
+                    style: AppTextStyles.titleLarge
+                        .copyWith(color: AppColors.primary)),
                 Row(
                   children: [
-                    OutlinedButton(onPressed: () {}, child: const Text('Decline')),
+                    OutlinedButton(
+                        onPressed: () => controller.declineOrder(order.id),
+                        child: const Text('Decline')),
                     const SizedBox(width: 8),
-                    ElevatedButton(onPressed: () {}, child: const Text('Accept')),
+                    ElevatedButton(
+                        onPressed: () => controller.acceptOrder(order.id),
+                        child: const Text('Accept')),
                   ],
                 ),
               ],

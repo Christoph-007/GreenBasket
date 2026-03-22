@@ -18,7 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
-  final _authCtrl = Get.put(AuthController());
+  final _authCtrl = Get.find<AuthController>();
 
   @override
   void dispose() {

@@ -15,15 +15,6 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
   bool _selectionMode = false;
   String _searchQuery = '';
 
-  // Mock products — replace with API call
-  final _products = [
-    {'id': 'P001', 'name': 'Organic Spinach 500g', 'merchant': 'Fresh Farms', 'price': '₹60', 'stock': 45, 'status': 'Active', 'category': 'Vegetables'},
-    {'id': 'P002', 'name': 'Fresh Tomatoes 1kg', 'merchant': 'Green Grocers', 'price': '₹60', 'stock': 120, 'status': 'Active', 'category': 'Vegetables'},
-    {'id': 'P003', 'name': 'Baby Carrots 250g', 'merchant': 'Organic World', 'price': '₹45', 'stock': 0, 'status': 'Inactive', 'category': 'Vegetables'},
-    {'id': 'P004', 'name': 'Alphonso Mangoes 1kg', 'merchant': 'Farm Fresh', 'price': '₹220', 'stock': 30, 'status': 'Active', 'category': 'Fruits'},
-    {'id': 'P005', 'name': 'Wild Honey 500ml', 'merchant': 'Nature Basket', 'price': '₹350', 'stock': 15, 'status': 'Suspended', 'category': 'Pantry'},
-    {'id': 'P006', 'name': 'Amul Full Cream Milk 1L', 'merchant': 'Dairy Direct', 'price': '₹68', 'stock': 200, 'status': 'Active', 'category': 'Dairy'},
-  ];
 
   Color _statusColor(String status) {
     switch (status) {
@@ -168,14 +159,15 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     super.dispose();
   }
 
+  final controller = Get.find<AdminController>();
+
   @override
   Widget build(BuildContext context) {
-    final products = _filteredProducts;
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: _selectionMode
-            ? Text('${_selectedIds.length} Selected')
+            ? Obx(() => Text('${_selectedIds.length} Selected'))
             : const Text('Products Management'),
         leading: IconButton(
           icon: Icon(_selectionMode ? Icons.close : Icons.arrow_back_ios_new, size: 18),
@@ -235,13 +227,25 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
             ),
           ),
           Expanded(
-            child: products.isEmpty
-                ? const Center(child: Text('No products found.'))
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                    itemCount: products.length,
-                    itemBuilder: (_, i) => _buildProductCard(products[i]),
-                  ),
+            child: Obx(() {
+              final filteredProducts = controller.products.where((p) {
+                final product = p as Map<String, dynamic>;
+                final searchMatch = (product['name'] as String).toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                                    (product['merchant']?['name']?.toString() ?? '').toLowerCase().contains(_searchQuery.toLowerCase());
+                // TODO: Add category and status filters from _showFilterSheet state
+                return searchMatch;
+              }).toList();
+
+              if (filteredProducts.isEmpty) {
+                return const Center(child: Text('No products found.'));
+              }
+
+              return ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                itemCount: filteredProducts.length,
+                itemBuilder: (_, i) => _buildProductCard(filteredProducts[i] as Map<String, dynamic>),
+              );
+            }),
           ),
         ],
       ),
@@ -249,10 +253,12 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
   }
 
   Widget _buildProductCard(Map<String, dynamic> product) {
-    final id = product['id'] as String;
+    final id = product['_id'] ?? product['id'];
     final isSelected = _selectedIds.contains(id);
-    final status = product['status'] as String;
-    final stock = product['stock'] as int;
+    final status = product['status'] ?? 'Active';
+    final stock = product['stock'] ?? 0;
+    final merchantName = product['merchant']?['name']?.toString() ?? 'Unknown Merchant';
+    final price = product['price']?.toString() ?? '0';
 
     return Card(
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
@@ -313,11 +319,11 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(product['name'] as String, style: AppTextStyles.labelLarge),
-                    Text(product['merchant'] as String, style: AppTextStyles.bodySmall),
+                    Text(merchantName, style: AppTextStyles.bodySmall),
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        Text(product['price'] as String, style: AppTextStyles.titleMedium.copyWith(color: AppColors.primary)),
+                        Text('₹$price', style: AppTextStyles.titleMedium.copyWith(color: AppColors.primary)),
                         const SizedBox(width: AppSpacing.sm),
                         Text(
                           stock == 0 ? 'Out of stock' : 'Stock: $stock',

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:greenbasket_app/config/theme.dart';
+import '../../../data/repositories/merchant_repository.dart';
 
 class BulkUploadScreen extends StatefulWidget {
   const BulkUploadScreen({super.key});
@@ -10,48 +11,42 @@ class BulkUploadScreen extends StatefulWidget {
 }
 
 class _BulkUploadScreenState extends State<BulkUploadScreen> {
+  final _repo = MerchantRepository();
   bool _fileSelected = false;
   String _selectedFileName = '';
   bool _instructionsExpanded = false;
+  bool _isUploading = false;
+  bool _isLoadingHistory = true;
+  List<Map<String, dynamic>> _recentUploads = [];
 
-  // Mock recent uploads — TODO: fetch from API
-  final List<Map<String, dynamic>> _recentUploads = [
-    {
-      'filename': 'products_march_2024.csv',
-      'date': 'Mar 20, 2024',
-      'status': 'Success',
-      'count': 47,
-    },
-    {
-      'filename': 'vegetables_update.csv',
-      'date': 'Mar 15, 2024',
-      'status': 'Success',
-      'count': 23,
-    },
-    {
-      'filename': 'bulk_import_v2.csv',
-      'date': 'Mar 10, 2024',
-      'status': 'Failed',
-      'count': 0,
-    },
-    {
-      'filename': 'fruits_catalog.csv',
-      'date': 'Mar 5, 2024',
-      'status': 'Success',
-      'count': 31,
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _fetchUploadHistory();
+  }
+
+  Future<void> _fetchUploadHistory() async {
+    try {
+      final history = await _repo.getUploadHistory();
+      setState(() {
+        _recentUploads = history;
+        _isLoadingHistory = false;
+      });
+    } catch (_) {
+      setState(() => _isLoadingHistory = false);
+    }
+  }
 
   void _selectFile() {
-    // TODO: open file picker for CSV
+    // File picker integration point — sets a mock filename for now
     setState(() {
       _fileSelected = true;
-      _selectedFileName = 'products_import_${DateTime.now().millisecondsSinceEpoch}.csv';
+      _selectedFileName =
+          'products_import_${DateTime.now().millisecondsSinceEpoch}.csv';
     });
   }
 
   void _downloadTemplate() {
-    // TODO: trigger template download
     Get.snackbar(
       'Template Downloaded',
       'CSV template saved to Downloads',
@@ -61,7 +56,7 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
     );
   }
 
-  void _uploadFile() {
+  Future<void> _uploadFile() async {
     if (!_fileSelected) {
       Get.snackbar(
         'No File Selected',
@@ -72,14 +67,32 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
       );
       return;
     }
-    // TODO: call API to upload CSV
-    Get.snackbar(
-      'Uploading',
-      'Processing your file...',
-      backgroundColor: AppColors.primary,
-      colorText: Colors.white,
-      snackPosition: SnackPosition.BOTTOM,
-    );
+    setState(() => _isUploading = true);
+    try {
+      await _repo.bulkUploadProducts(_selectedFileName);
+      Get.snackbar(
+        'Upload Successful',
+        'Your products are being processed',
+        backgroundColor: AppColors.success,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      setState(() {
+        _fileSelected = false;
+        _selectedFileName = '';
+      });
+      await _fetchUploadHistory();
+    } catch (_) {
+      Get.snackbar(
+        'Upload Failed',
+        'Could not upload file. Please try again.',
+        backgroundColor: AppColors.error,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } finally {
+      setState(() => _isUploading = false);
+    }
   }
 
   @override
@@ -100,7 +113,7 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
           children: [
             // Upload area
             GestureDetector(
-              onTap: _selectFile,
+              onTap: _isUploading ? null : _selectFile,
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(AppSpacing.xl),
@@ -232,12 +245,20 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
                           const SizedBox(height: AppSpacing.sm),
                           ..._buildColumnRows([
                             ['A', 'name', 'Product name (required)'],
-                            ['B', 'category', 'Vegetables / Fruits / Dairy / Grains'],
+                            [
+                              'B',
+                              'category',
+                              'Vegetables / Fruits / Dairy / Grains'
+                            ],
                             ['C', 'price', 'Selling price in ₹ (number)'],
                             ['D', 'mrp', 'MRP in ₹ (number)'],
                             ['E', 'stock', 'Initial stock quantity'],
                             ['F', 'unit', 'kg / piece / bunch / litre'],
-                            ['G', 'description', 'Product description (optional)'],
+                            [
+                              'G',
+                              'description',
+                              'Product description (optional)'
+                            ],
                             ['H', 'organic', 'true / false'],
                           ]),
                           const SizedBox(height: AppSpacing.md),
@@ -272,9 +293,36 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
             const SizedBox(height: AppSpacing.lg),
 
             // Recent uploads
-            Text('Recent Uploads', style: AppTextStyles.titleLarge),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Recent Uploads', style: AppTextStyles.titleLarge),
+                if (_isLoadingHistory)
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+              ],
+            ),
             const SizedBox(height: AppSpacing.md),
-            ..._recentUploads.map((upload) => _buildUploadHistoryCard(upload)),
+            if (!_isLoadingHistory && _recentUploads.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Center(
+                  child: Text('No upload history yet.',
+                      style: AppTextStyles.bodyMedium
+                          .copyWith(color: AppColors.textSecondary)),
+                ),
+              )
+            else
+              ..._recentUploads
+                  .map((upload) => _buildUploadHistoryCard(upload)),
             const SizedBox(height: AppSpacing.xl),
           ],
         ),
@@ -294,9 +342,15 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
           child: SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: _uploadFile,
-              icon: const Icon(Icons.cloud_upload_outlined),
-              label: const Text('Upload Products'),
+              onPressed: _isUploading ? null : _uploadFile,
+              icon: _isUploading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.cloud_upload_outlined),
+              label: Text(_isUploading ? 'Uploading...' : 'Upload Products'),
             ),
           ),
         ),
@@ -341,7 +395,15 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
   }
 
   Widget _buildUploadHistoryCard(Map<String, dynamic> upload) {
-    final isSuccess = upload['status'] == 'Success';
+    final statusRaw =
+        (upload['status'] ?? upload['uploadStatus'] ?? '').toString();
+    final isSuccess = statusRaw.toLowerCase() == 'success' ||
+        statusRaw.toLowerCase() == 'completed';
+    final filename =
+        upload['filename'] ?? upload['fileName'] ?? 'upload.csv';
+    final date = upload['date'] ?? upload['createdAt'] ?? '-';
+    final count = upload['count'] ?? upload['productCount'] ?? 0;
+
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -365,8 +427,7 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
               isSuccess
                   ? Icons.check_circle_outline
                   : Icons.error_outline,
-              color:
-                  isSuccess ? AppColors.success : AppColors.error,
+              color: isSuccess ? AppColors.success : AppColors.error,
               size: 22,
             ),
           ),
@@ -376,14 +437,13 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  upload['filename'] as String,
+                  filename.toString(),
                   style: AppTextStyles.bodyMedium
                       .copyWith(fontWeight: FontWeight.w500),
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
-                Text(upload['date'] as String,
-                    style: AppTextStyles.bodySmall),
+                Text(date.toString(), style: AppTextStyles.bodySmall),
               ],
             ),
           ),
@@ -397,23 +457,18 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
                   color: isSuccess
                       ? AppColors.success.withOpacity(0.1)
                       : AppColors.error.withOpacity(0.1),
-                  borderRadius:
-                      BorderRadius.circular(AppRadius.full),
+                  borderRadius: BorderRadius.circular(AppRadius.full),
                 ),
                 child: Text(
-                  upload['status'] as String,
+                  isSuccess ? 'Success' : 'Failed',
                   style: AppTextStyles.labelSmall.copyWith(
-                    color: isSuccess
-                        ? AppColors.success
-                        : AppColors.error,
+                    color: isSuccess ? AppColors.success : AppColors.error,
                   ),
                 ),
               ),
               const SizedBox(height: 2),
               Text(
-                isSuccess
-                    ? '${upload['count']} products'
-                    : 'Upload failed',
+                isSuccess ? '$count products' : 'Upload failed',
                 style: AppTextStyles.bodySmall,
               ),
             ],

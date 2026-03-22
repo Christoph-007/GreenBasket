@@ -1,99 +1,104 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:greenbasket_app/config/theme.dart';
+import '../../../data/repositories/merchant_repository.dart';
 
-enum DocStatus { verified, pending, rejected, notUploaded }
-
-class DocumentsScreen extends StatelessWidget {
+class DocumentsScreen extends StatefulWidget {
   const DocumentsScreen({super.key});
 
-  // Mock document data — TODO: fetch from API
-  static final List<Map<String, dynamic>> _documents = [
-    {
-      'type': 'FSSAI License',
-      'subtitle': 'Food Safety & Standards Authority',
-      'icon': Icons.verified_outlined,
-      'status': DocStatus.verified,
-      'uploadDate': 'Jan 15, 2024',
-      'expiryDate': 'Jan 14, 2026',
-      'docNumber': 'FSSAI-12345678901234',
-    },
-    {
-      'type': 'GST Certificate',
-      'subtitle': 'Goods & Services Tax Registration',
-      'icon': Icons.receipt_long_outlined,
-      'status': DocStatus.verified,
-      'uploadDate': 'Jan 15, 2024',
-      'expiryDate': 'Lifetime',
-      'docNumber': '29AAAAA0000A1Z5',
-    },
-    {
-      'type': 'Trade License',
-      'subtitle': 'Municipal Corporation License',
-      'icon': Icons.store_outlined,
-      'status': DocStatus.pending,
-      'uploadDate': 'Mar 10, 2024',
-      'expiryDate': 'Mar 31, 2025',
-      'docNumber': null,
-    },
-    {
-      'type': 'Organic Certification',
-      'subtitle': 'Organic Farming Certificate',
-      'icon': Icons.eco_outlined,
-      'status': DocStatus.notUploaded,
-      'uploadDate': null,
-      'expiryDate': null,
-      'docNumber': null,
-    },
-  ];
+  @override
+  State<DocumentsScreen> createState() => _DocumentsScreenState();
+}
 
-  Color _statusColor(DocStatus s) {
-    switch (s) {
-      case DocStatus.verified:
+class _DocumentsScreenState extends State<DocumentsScreen> {
+  final _repo = MerchantRepository();
+  bool _isLoading = true;
+  List<Map<String, dynamic>> _documents = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDocuments();
+  }
+
+  Future<void> _fetchDocuments() async {
+    try {
+      final docs = await _repo.getDocuments();
+      setState(() {
+        _documents = docs;
+        _isLoading = false;
+      });
+    } catch (_) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Color _statusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'verified':
+      case 'approved':
         return AppColors.success;
-      case DocStatus.pending:
+      case 'pending':
+      case 'under_review':
         return AppColors.warning;
-      case DocStatus.rejected:
+      case 'rejected':
         return AppColors.error;
-      case DocStatus.notUploaded:
+      default:
         return AppColors.textHint;
     }
   }
 
-  String _statusLabel(DocStatus s) {
-    switch (s) {
-      case DocStatus.verified:
+  String _statusLabel(String status) {
+    switch (status.toLowerCase()) {
+      case 'verified':
+      case 'approved':
         return 'Verified';
-      case DocStatus.pending:
+      case 'pending':
+      case 'under_review':
         return 'Pending Review';
-      case DocStatus.rejected:
+      case 'rejected':
         return 'Rejected';
-      case DocStatus.notUploaded:
+      default:
         return 'Not Uploaded';
     }
   }
 
-  IconData _statusIcon(DocStatus s) {
-    switch (s) {
-      case DocStatus.verified:
+  IconData _statusIcon(String status) {
+    switch (status.toLowerCase()) {
+      case 'verified':
+      case 'approved':
         return Icons.check_circle_outline;
-      case DocStatus.pending:
+      case 'pending':
+      case 'under_review':
         return Icons.schedule_outlined;
-      case DocStatus.rejected:
+      case 'rejected':
         return Icons.cancel_outlined;
-      case DocStatus.notUploaded:
+      default:
         return Icons.upload_file_outlined;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final verifiedCount =
-        _documents.where((d) => d['status'] == DocStatus.verified).length;
-    final pendingCount =
-        _documents.where((d) => d['status'] == DocStatus.pending).length;
-    final rejectedCount =
-        _documents.where((d) => d['status'] == DocStatus.rejected).length;
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final verifiedCount = _documents
+        .where((d) =>
+            (d['status'] ?? '').toLowerCase() == 'verified' ||
+            (d['status'] ?? '').toLowerCase() == 'approved')
+        .length;
+    final pendingCount = _documents
+        .where((d) =>
+            (d['status'] ?? '').toLowerCase() == 'pending' ||
+            (d['status'] ?? '').toLowerCase() == 'under_review')
+        .length;
+    final rejectedCount = _documents
+        .where((d) => (d['status'] ?? '').toLowerCase() == 'rejected')
+        .length;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -103,66 +108,107 @@ class DocumentsScreen extends StatelessWidget {
           icon: const Icon(Icons.arrow_back_ios_new, size: 20),
           onPressed: () => Get.back(),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              setState(() => _isLoading = true);
+              _fetchDocuments();
+            },
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Verification summary
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(AppRadius.lg),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Verification Status',
-                      style: AppTextStyles.titleMedium),
-                  const SizedBox(height: AppSpacing.md),
-                  Row(
-                    children: [
-                      _summaryChip(
-                          '$verifiedCount Verified', AppColors.success),
-                      const SizedBox(width: AppSpacing.sm),
-                      _summaryChip(
-                          '$pendingCount Pending', AppColors.warning),
-                      const SizedBox(width: AppSpacing.sm),
-                      _summaryChip(
-                          '$rejectedCount Rejected', AppColors.error),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(AppRadius.full),
-                    child: LinearProgressIndicator(
-                      value: verifiedCount / _documents.length,
-                      backgroundColor: AppColors.border,
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                          AppColors.success),
-                      minHeight: 8,
+      body: RefreshIndicator(
+        onRefresh: _fetchDocuments,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Verification summary
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Verification Status',
+                        style: AppTextStyles.titleMedium),
+                    const SizedBox(height: AppSpacing.md),
+                    Row(
+                      children: [
+                        _summaryChip('$verifiedCount Verified',
+                            AppColors.success),
+                        const SizedBox(width: AppSpacing.sm),
+                        _summaryChip(
+                            '$pendingCount Pending', AppColors.warning),
+                        const SizedBox(width: AppSpacing.sm),
+                        _summaryChip(
+                            '$rejectedCount Rejected', AppColors.error),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    '$verifiedCount of ${_documents.length} documents verified',
-                    style: AppTextStyles.bodySmall,
-                  ),
-                ],
+                    if (_documents.isNotEmpty) ...[
+                      const SizedBox(height: AppSpacing.md),
+                      ClipRRect(
+                        borderRadius:
+                            BorderRadius.circular(AppRadius.full),
+                        child: LinearProgressIndicator(
+                          value: verifiedCount / _documents.length,
+                          backgroundColor: AppColors.border,
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                              AppColors.success),
+                          minHeight: 8,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        '$verifiedCount of ${_documents.length} documents verified',
+                        style: AppTextStyles.bodySmall,
+                      ),
+                    ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: AppSpacing.lg),
 
-            Text('Documents', style: AppTextStyles.titleLarge),
-            const SizedBox(height: AppSpacing.md),
+              Text('Documents', style: AppTextStyles.titleLarge),
+              const SizedBox(height: AppSpacing.md),
 
-            ..._documents.map((doc) => _buildDocumentCard(context, doc)),
-            const SizedBox(height: AppSpacing.xl),
-          ],
+              if (_documents.isEmpty)
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.xl),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: const Center(
+                    child: Text('No documents found. Upload your compliance documents.',
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.bodyMedium),
+                  ),
+                )
+              else
+                ..._documents.map(
+                    (doc) => _buildDocumentCard(context, doc)),
+
+              const SizedBox(height: AppSpacing.xl),
+            ],
+          ),
         ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () =>
+            Get.toNamed('/merchant/documents/upload'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.upload_file),
+        label: const Text('Upload Document'),
       ),
     );
   }
@@ -175,16 +221,42 @@ class DocumentsScreen extends StatelessWidget {
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(AppRadius.full),
       ),
-      child: Text(label,
-          style: AppTextStyles.labelSmall.copyWith(color: color)),
+      child:
+          Text(label, style: AppTextStyles.labelSmall.copyWith(color: color)),
     );
   }
 
   Widget _buildDocumentCard(
       BuildContext context, Map<String, dynamic> doc) {
-    final status = doc['status'] as DocStatus;
+    final status = (doc['status'] ?? 'not_uploaded').toString();
     final color = _statusColor(status);
-    final isUploaded = status != DocStatus.notUploaded;
+    final docType = doc['type'] ?? doc['documentType'] ?? 'Document';
+    final subtitle = doc['subtitle'] ?? doc['description'] ?? '';
+    final isUploaded = status.toLowerCase() != 'not_uploaded' &&
+        status.toLowerCase() != 'not uploaded';
+    final docNumber = doc['docNumber'] ?? doc['documentNumber'];
+    final uploadDate = doc['uploadDate'] ?? doc['uploadedAt'];
+    final expiryDate = doc['expiryDate'] ?? doc['expiresAt'] ?? 'N/A';
+    final rejectionReason =
+        doc['rejectionReason'] ?? doc['reason'];
+
+    IconData docIcon;
+    switch (docType.toLowerCase()) {
+      case 'fssai':
+      case 'fssai license':
+        docIcon = Icons.verified_outlined;
+        break;
+      case 'gst':
+      case 'gst certificate':
+        docIcon = Icons.receipt_long_outlined;
+        break;
+      case 'organic':
+      case 'organic certification':
+        docIcon = Icons.eco_outlined;
+        break;
+      default:
+        docIcon = Icons.description_outlined;
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
@@ -192,7 +264,7 @@ class DocumentsScreen extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(
-          color: status == DocStatus.rejected
+          color: status.toLowerCase() == 'rejected'
               ? AppColors.error.withOpacity(0.3)
               : AppColors.border,
         ),
@@ -213,18 +285,18 @@ class DocumentsScreen extends StatelessWidget {
                         borderRadius:
                             BorderRadius.circular(AppRadius.sm),
                       ),
-                      child: Icon(doc['icon'] as IconData,
-                          color: color, size: 22),
+                      child: Icon(docIcon, color: color, size: 22),
                     ),
                     const SizedBox(width: AppSpacing.md),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(doc['type'] as String,
+                          Text(docType,
                               style: AppTextStyles.titleMedium),
-                          Text(doc['subtitle'] as String,
-                              style: AppTextStyles.bodySmall),
+                          if (subtitle.isNotEmpty)
+                            Text(subtitle,
+                                style: AppTextStyles.bodySmall),
                         ],
                       ),
                     ),
@@ -256,25 +328,24 @@ class DocumentsScreen extends StatelessWidget {
                   const SizedBox(height: AppSpacing.sm),
                   Row(
                     children: [
-                      if (doc['docNumber'] != null) ...[
+                      if (docNumber != null) ...[
                         Expanded(
-                          child: _infoItem(
-                              'Document No.', doc['docNumber'] as String),
+                          child: _infoItem('Document No.', '$docNumber'),
                         ),
                         const SizedBox(width: AppSpacing.md),
                       ],
-                      Expanded(
-                        child: _infoItem('Uploaded',
-                            doc['uploadDate'] as String? ?? '-'),
-                      ),
+                      if (uploadDate != null)
+                        Expanded(
+                          child: _infoItem('Uploaded', '$uploadDate'),
+                        ),
                       const SizedBox(width: AppSpacing.md),
                       Expanded(
-                        child: _infoItem(
-                            'Expiry', doc['expiryDate'] as String? ?? '-'),
+                        child: _infoItem('Expiry', '$expiryDate'),
                       ),
                     ],
                   ),
-                  if (status == DocStatus.rejected) ...[
+                  if (status.toLowerCase() == 'rejected' &&
+                      rejectionReason != null) ...[
                     const SizedBox(height: AppSpacing.sm),
                     Container(
                       padding: const EdgeInsets.all(AppSpacing.sm),
@@ -292,7 +363,7 @@ class DocumentsScreen extends StatelessWidget {
                           const SizedBox(width: AppSpacing.xs),
                           Expanded(
                             child: Text(
-                              'Document rejected: Please upload a clearer copy',
+                              'Rejected: $rejectionReason',
                               style: AppTextStyles.bodySmall
                                   .copyWith(color: AppColors.error),
                             ),
@@ -315,7 +386,11 @@ class DocumentsScreen extends StatelessWidget {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () {
-                        // TODO: open document viewer
+                        final url = doc['url'] ?? doc['fileUrl'];
+                        if (url != null) {
+                          Get.snackbar('Document', 'Opening document...',
+                              snackPosition: SnackPosition.BOTTOM);
+                        }
                       },
                       icon: const Icon(Icons.visibility_outlined, size: 16),
                       label: const Text('View'),
@@ -329,10 +404,9 @@ class DocumentsScreen extends StatelessWidget {
                   child: ElevatedButton.icon(
                     onPressed: () => Get.toNamed(
                         '/merchant/documents/upload',
-                        arguments: {'type': doc['type']}),
+                        arguments: {'type': docType}),
                     icon: const Icon(Icons.upload_outlined, size: 16),
-                    label: Text(
-                        isUploaded ? 'Re-Upload' : 'Upload'),
+                    label: Text(isUploaded ? 'Re-Upload' : 'Upload'),
                     style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
                             vertical: AppSpacing.sm)),

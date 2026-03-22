@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:greenbasket_app/config/theme.dart';
-import 'package:greenbasket_app/modules/admin/products/create_category_screen.dart';
+import '../admin_controller.dart';
+import 'create_category_screen.dart';
 
 class AdminCategoriesScreen extends StatefulWidget {
   const AdminCategoriesScreen({super.key});
@@ -11,15 +12,7 @@ class AdminCategoriesScreen extends StatefulWidget {
 }
 
 class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
-  // Mock categories — replace with API call
-  final List<Map<String, dynamic>> _categories = [
-    {'id': 'C001', 'icon': '🥦', 'name': 'Vegetables', 'subcategories': 8, 'products': 124, 'active': true},
-    {'id': 'C002', 'icon': '🍎', 'name': 'Fruits', 'subcategories': 6, 'products': 87, 'active': true},
-    {'id': 'C003', 'icon': '🥛', 'name': 'Dairy & Eggs', 'subcategories': 4, 'products': 56, 'active': true},
-    {'id': 'C004', 'icon': '🧺', 'name': 'Pantry Staples', 'subcategories': 10, 'products': 203, 'active': true},
-    {'id': 'C005', 'icon': '🍵', 'name': 'Beverages', 'subcategories': 5, 'products': 78, 'active': false},
-    {'id': 'C006', 'icon': '🌿', 'name': 'Herbs & Spices', 'subcategories': 3, 'products': 45, 'active': true},
-  ];
+  final controller = Get.find<AdminController>();
 
   void _showOptionsMenu(BuildContext context, Map<String, dynamic> category) {
     showModalBottomSheet(
@@ -43,7 +36,7 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
               ),
             ),
             const SizedBox(height: AppSpacing.md),
-            Text(category['name'] as String, style: AppTextStyles.titleLarge),
+            Text(category['name']?.toString() ?? 'Category', style: AppTextStyles.titleLarge),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.edit_outlined, color: AppColors.info),
@@ -55,24 +48,26 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
             ),
             ListTile(
               leading: Icon(
-                category['active'] as bool ? Icons.pause_circle_outline : Icons.play_circle_outline,
+                (category['active'] ?? true) ? Icons.pause_circle_outline : Icons.play_circle_outline,
                 color: AppColors.warning,
               ),
-              title: Text(category['active'] as bool ? 'Deactivate' : 'Activate'),
+              title: Text((category['active'] ?? true) ? 'Deactivate' : 'Activate'),
               onTap: () {
-                setState(() => category['active'] = !(category['active'] as bool));
+                // TODO: Call API to toggle status
                 Navigator.pop(ctx);
               },
             ),
             ListTile(
               leading: const Icon(Icons.delete_outline, color: AppColors.error),
               title: const Text('Delete Category', style: TextStyle(color: AppColors.error)),
-              onTap: () {
-                // TODO: Call API to delete category
-                Navigator.pop(ctx);
-                setState(() => _categories.remove(category));
-                Get.snackbar('Deleted', '${category['name']} has been deleted.',
-                    backgroundColor: AppColors.error, colorText: Colors.white);
+              onTap: () async {
+                final id = category['_id'] ?? category['id'];
+                if (id != null) {
+                  // TODO: Implement delete in controller
+                  Navigator.pop(ctx);
+                  Get.snackbar('Deleted', '${category['name']} has been deleted.',
+                      backgroundColor: AppColors.error, colorText: Colors.white);
+                }
               },
             ),
             const SizedBox(height: AppSpacing.sm),
@@ -99,73 +94,74 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('Add Category', style: TextStyle(color: Colors.white)),
       ),
-      body: ReorderableListView.builder(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        itemCount: _categories.length,
-        onReorder: (oldIndex, newIndex) {
-          setState(() {
-            if (newIndex > oldIndex) newIndex--;
-            final item = _categories.removeAt(oldIndex);
-            _categories.insert(newIndex, item);
-          });
-          // TODO: Call API to update category order
-        },
-        itemBuilder: (_, i) {
-          final cat = _categories[i];
-          return Card(
-            key: ValueKey(cat['id']),
-            margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-            child: GestureDetector(
-              onLongPress: () => _showOptionsMenu(context, cat),
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: Row(
-                  children: [
-                    ReorderableDragStartListener(
-                      index: i,
-                      child: const Icon(Icons.drag_handle, color: AppColors.textHint),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryContainer,
-                        borderRadius: BorderRadius.circular(AppRadius.sm),
+      body: Obx(() {
+        final categoryList = controller.categories;
+        if (categoryList.isEmpty) {
+          return const Center(child: Text('No categories found.'));
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          itemCount: categoryList.length,
+          itemBuilder: (_, i) {
+            final cat = categoryList[i] as Map<String, dynamic>;
+            final icon = cat['icon']?.toString() ?? '🛒';
+            final name = cat['name']?.toString() ?? 'N/A';
+            final subCount = cat['subcategoriesCount'] ?? cat['subcategories']?.length ?? 0;
+            final prodCount = cat['productsCount'] ?? 0;
+            final isActive = cat['active'] ?? true;
+
+            return Card(
+              margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: InkWell(
+                onLongPress: () => _showOptionsMenu(context, cat),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryContainer,
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                        ),
+                        child: Center(
+                          child: Text(icon, style: const TextStyle(fontSize: 22)),
+                        ),
                       ),
-                      child: Center(
-                        child: Text(cat['icon'] as String, style: const TextStyle(fontSize: 22)),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(name, style: AppTextStyles.titleMedium),
+                            Text(
+                              '$subCount subcategories • $prodCount products',
+                              style: AppTextStyles.bodySmall,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(cat['name'] as String, style: AppTextStyles.titleMedium),
-                          Text(
-                            '${cat['subcategories']} subcategories • ${cat['products']} products',
-                            style: AppTextStyles.bodySmall,
-                          ),
-                        ],
+                      Switch(
+                        value: isActive,
+                        onChanged: (v) {
+                          // TODO: Call API to toggle status
+                        },
+                        activeColor: AppColors.primary,
                       ),
-                    ),
-                    Switch(
-                      value: cat['active'] as bool,
-                      onChanged: (v) => setState(() => cat['active'] = v),
-                      activeColor: AppColors.primary,
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.more_vert, color: AppColors.textSecondary, size: 20),
-                      onPressed: () => _showOptionsMenu(context, cat),
-                    ),
-                  ],
+                      IconButton(
+                        icon: const Icon(Icons.more_vert, color: AppColors.textSecondary, size: 20),
+                        onPressed: () => _showOptionsMenu(context, cat),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        },
-      ),
+            );
+          },
+        );
+      }),
     );
   }
 }

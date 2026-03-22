@@ -1,61 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:greenbasket_app/config/theme.dart';
+import 'package:greenbasket_app/data/repositories/merchant_repository.dart';
+import 'package:greenbasket_app/data/models/product_model.dart';
 
 class ProductStockScreen extends StatefulWidget {
-  const ProductStockScreen({super.key});
+  final ProductModel product;
+  const ProductStockScreen({super.key, required this.product});
 
   @override
   State<ProductStockScreen> createState() => _ProductStockScreenState();
 }
 
 class _ProductStockScreenState extends State<ProductStockScreen> {
-  // TODO: replace with actual product data from args / API
-  final String _productName = 'Fresh Tomatoes';
-  final String _unit = 'kg';
-  int _currentStock = 120;
+  late int _currentStock;
   int _adjustAmount = 1;
-  bool _lowStockAlertEnabled = true;
-  final _thresholdController = TextEditingController(text: '20');
   final _adjustController = TextEditingController(text: '1');
+  final _repo = MerchantRepository();
+  bool _isLoading = false;
 
-  // Mock stock history — TODO: fetch from API
-  final List<Map<String, dynamic>> _history = [
-    {
-      'date': 'Today, 09:15 AM',
-      'change': 50,
-      'reason': 'Restock',
-      'resulting': 120,
-    },
-    {
-      'date': 'Yesterday, 02:30 PM',
-      'change': -18,
-      'reason': 'Orders fulfilled',
-      'resulting': 70,
-    },
-    {
-      'date': 'Mar 20, 11:00 AM',
-      'change': 80,
-      'reason': 'Restock',
-      'resulting': 88,
-    },
-    {
-      'date': 'Mar 19, 05:00 PM',
-      'change': -22,
-      'reason': 'Orders fulfilled',
-      'resulting': 8,
-    },
-    {
-      'date': 'Mar 18, 10:00 AM',
-      'change': 100,
-      'reason': 'Initial stock',
-      'resulting': 30,
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _currentStock = widget.product.stock;
+  }
 
   @override
   void dispose() {
-    _thresholdController.dispose();
     _adjustController.dispose();
     super.dispose();
   }
@@ -76,28 +47,32 @@ class _ProductStockScreenState extends State<ProductStockScreen> {
     }
   }
 
-  void _updateStock(bool add) {
-    setState(() {
-      if (add) {
-        _currentStock += _adjustAmount;
-      } else {
-        _currentStock =
-            (_currentStock - _adjustAmount).clamp(0, 99999);
-      }
-    });
-    Get.snackbar(
-      'Stock Updated',
-      '${add ? '+' : '-'}$_adjustAmount $_unit recorded',
-      backgroundColor: AppColors.success,
-      colorText: Colors.white,
-      snackPosition: SnackPosition.BOTTOM,
-    );
+  Future<void> _updateStock(bool add) async {
+    final newStock = add ? _currentStock + _adjustAmount : (_currentStock - _adjustAmount).clamp(0, 999999);
+    
+    setState(() => _isLoading = true);
+    try {
+      await _repo.updateStock(widget.product.id, newStock);
+      setState(() {
+        _currentStock = newStock;
+      });
+      Get.snackbar(
+        'Stock Updated',
+        'Stock set to $_currentStock ${widget.product.unit}',
+        backgroundColor: AppColors.success,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to update stock: $e', backgroundColor: AppColors.error, colorText: Colors.white);
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isLow = _currentStock <=
-        (int.tryParse(_thresholdController.text) ?? 20);
+    final isLow = _currentStock <= 5; // Simple low stock threshold
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -114,7 +89,7 @@ class _ProductStockScreenState extends State<ProductStockScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Product name
-            Text(_productName,
+            Text(widget.product.name,
                 style: AppTextStyles.headlineMedium),
             const SizedBox(height: AppSpacing.md),
 
@@ -157,14 +132,14 @@ class _ProductStockScreenState extends State<ProductStockScreen> {
                         padding:
                             const EdgeInsets.only(bottom: AppSpacing.sm),
                         child: Text(
-                          _unit,
+                          widget.product.unit,
                           style: AppTextStyles.titleLarge
                               .copyWith(color: Colors.white70),
                         ),
                       ),
                     ],
                   ),
-                  if (isLow && _lowStockAlertEnabled) ...[
+                  if (isLow) ...[
                     const SizedBox(height: AppSpacing.sm),
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -239,7 +214,7 @@ class _ProductStockScreenState extends State<ProductStockScreen> {
                       ),
                     ],
                   ),
-                  Text(_unit,
+                  Text(widget.product.unit,
                       style: AppTextStyles.bodySmall
                           .copyWith(color: AppColors.textHint)),
                   const SizedBox(height: AppSpacing.md),
@@ -247,7 +222,7 @@ class _ProductStockScreenState extends State<ProductStockScreen> {
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () => _updateStock(false),
+                          onPressed: _isLoading ? null : () => _updateStock(false),
                           icon: const Icon(Icons.remove_circle_outline,
                               size: 18),
                           label: const Text('Remove Stock'),
@@ -261,10 +236,10 @@ class _ProductStockScreenState extends State<ProductStockScreen> {
                       const SizedBox(width: AppSpacing.md),
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () => _updateStock(true),
+                          onPressed: _isLoading ? null : () => _updateStock(true),
                           icon: const Icon(Icons.add_circle_outline,
                               size: 18),
-                          label: const Text('Add Stock'),
+                          label: _isLoading ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Add Stock'),
                         ),
                       ),
                     ],
@@ -274,124 +249,6 @@ class _ProductStockScreenState extends State<ProductStockScreen> {
             ),
             const SizedBox(height: AppSpacing.lg),
 
-            // Low stock alert
-            Text('Low Stock Alert', style: AppTextStyles.titleLarge),
-            const SizedBox(height: AppSpacing.md),
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(AppRadius.lg),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Enable low stock alert',
-                          style: AppTextStyles.bodyMedium),
-                      Switch(
-                        value: _lowStockAlertEnabled,
-                        onChanged: (v) =>
-                            setState(() => _lowStockAlertEnabled = v),
-                        activeColor: AppColors.primary,
-                      ),
-                    ],
-                  ),
-                  if (_lowStockAlertEnabled) ...[
-                    const Divider(),
-                    const SizedBox(height: AppSpacing.sm),
-                    TextFormField(
-                      controller: _thresholdController,
-                      keyboardType: TextInputType.number,
-                      style: AppTextStyles.bodyMedium,
-                      decoration: InputDecoration(
-                        labelText: 'Alert threshold ($_unit)',
-                        hintText: '20',
-                        suffixText: _unit,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-
-            // Stock history
-            Text('Stock History', style: AppTextStyles.titleLarge),
-            const SizedBox(height: AppSpacing.md),
-            ...List.generate(_history.length, (i) {
-              final item = _history[i];
-              final isAdd = (item['change'] as int) > 0;
-              return Container(
-                margin:
-                    const EdgeInsets.only(bottom: AppSpacing.sm),
-                padding: const EdgeInsets.all(AppSpacing.md),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius:
-                      BorderRadius.circular(AppRadius.md),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: isAdd
-                            ? AppColors.success.withOpacity(0.1)
-                            : AppColors.error.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        isAdd
-                            ? Icons.arrow_upward_rounded
-                            : Icons.arrow_downward_rounded,
-                        color: isAdd
-                            ? AppColors.success
-                            : AppColors.error,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
-                        children: [
-                          Text(item['reason'] as String,
-                              style: AppTextStyles.bodyMedium
-                                  .copyWith(
-                                      fontWeight:
-                                          FontWeight.w500)),
-                          Text(item['date'] as String,
-                              style: AppTextStyles.bodySmall),
-                        ],
-                      ),
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '${isAdd ? '+' : ''}${item['change']} $_unit',
-                          style: AppTextStyles.labelLarge.copyWith(
-                            color: isAdd
-                                ? AppColors.success
-                                : AppColors.error,
-                          ),
-                        ),
-                        Text(
-                          '→ ${item['resulting']} $_unit',
-                          style: AppTextStyles.bodySmall,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              );
-            }),
             const SizedBox(height: AppSpacing.xl),
           ],
         ),
@@ -410,12 +267,9 @@ class _ProductStockScreenState extends State<ProductStockScreen> {
         child: SafeArea(
           child: SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                // TODO: save all stock settings via API
-                Get.back();
-              },
-              child: const Text('Save Stock Settings'),
+            child: OutlinedButton(
+              onPressed: () => Get.back(result: true),
+              child: const Text('Done'),
             ),
           ),
         ),

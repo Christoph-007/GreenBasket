@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:greenbasket_app/config/theme.dart';
+import 'financial_controller.dart';
 
 class FinancialScreen extends StatefulWidget {
   const FinancialScreen({super.key});
@@ -12,91 +13,17 @@ class FinancialScreen extends StatefulWidget {
 class _FinancialScreenState extends State<FinancialScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  int _selectedPeriod = 2; // Default: This Month
-
-  // Mock data per period — TODO: fetch from API
-  final List<Map<String, dynamic>> _periodData = [
-    {
-      'label': 'Today',
-      'grossSales': 3450.0,
-      'netEarnings': 3105.0,
-      'commission': 345.0,
-      'pendingPayout': 3105.0,
-      'chartValues': [0.2, 0.5, 0.3, 0.7, 0.9, 0.6, 0.8, 0.4, 1.0, 0.7],
-    },
-    {
-      'label': 'This Week',
-      'grossSales': 24800.0,
-      'netEarnings': 22320.0,
-      'commission': 2480.0,
-      'pendingPayout': 12450.0,
-      'chartValues': [0.3, 0.5, 0.4, 0.8, 0.6, 0.9, 1.0],
-    },
-    {
-      'label': 'This Month',
-      'grossSales': 98500.0,
-      'netEarnings': 88650.0,
-      'commission': 9850.0,
-      'pendingPayout': 12450.0,
-      'chartValues': [0.4, 0.5, 0.3, 0.6, 0.5, 0.7, 0.8, 0.6, 0.9, 0.8, 1.0, 0.7],
-    },
-    {
-      'label': 'All Time',
-      'grossSales': 542000.0,
-      'netEarnings': 487800.0,
-      'commission': 54200.0,
-      'pendingPayout': 12450.0,
-      'chartValues': [0.2, 0.3, 0.4, 0.5, 0.6, 0.5, 0.7, 0.8, 0.9, 0.8, 1.0, 0.9],
-    },
-  ];
-
-  // Mock transactions — TODO: fetch from API
-  final List<Map<String, dynamic>> _transactions = [
-    {
-      'orderId': 'GB2024001',
-      'date': 'Mar 22, 10:30 AM',
-      'amount': 520.0,
-      'commission': 52.0,
-      'net': 468.0,
-    },
-    {
-      'orderId': 'GB2024002',
-      'date': 'Mar 22, 09:15 AM',
-      'amount': 340.0,
-      'commission': 34.0,
-      'net': 306.0,
-    },
-    {
-      'orderId': 'GB2024003',
-      'date': 'Mar 21, 06:45 PM',
-      'amount': 780.0,
-      'commission': 78.0,
-      'net': 702.0,
-    },
-    {
-      'orderId': 'GB2024004',
-      'date': 'Mar 21, 03:20 PM',
-      'amount': 210.0,
-      'commission': 21.0,
-      'net': 189.0,
-    },
-    {
-      'orderId': 'GB2024005',
-      'date': 'Mar 20, 11:10 AM',
-      'amount': 450.0,
-      'commission': 45.0,
-      'net': 405.0,
-    },
-  ];
+  late FinancialController controller;
 
   @override
   void initState() {
     super.initState();
+    controller = Get.put(FinancialController());
     _tabController = TabController(
-        length: 4, vsync: this, initialIndex: _selectedPeriod);
+        length: controller.periodLabels.length, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
-        setState(() => _selectedPeriod = _tabController.index);
+        controller.changePeriod(_tabController.index);
       }
     });
   }
@@ -118,7 +45,6 @@ class _FinancialScreenState extends State<FinancialScreen>
 
   @override
   Widget build(BuildContext context) {
-    final data = _periodData[_selectedPeriod];
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -131,7 +57,6 @@ class _FinancialScreenState extends State<FinancialScreen>
           IconButton(
             icon: const Icon(Icons.download_outlined),
             onPressed: () {
-              // TODO: download report
               Get.snackbar('Downloading', 'Report is being generated...',
                   snackPosition: SnackPosition.BOTTOM);
             },
@@ -146,96 +71,126 @@ class _FinancialScreenState extends State<FinancialScreen>
           unselectedLabelColor: AppColors.textSecondary,
           indicatorColor: AppColors.primary,
           isScrollable: false,
-          tabs: _periodData.map((p) => Tab(text: p['label'] as String)).toList(),
+          tabs: controller.periodLabels
+              .map((p) => Tab(text: p))
+              .toList(),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Stats grid
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              crossAxisSpacing: AppSpacing.md,
-              mainAxisSpacing: AppSpacing.md,
-              childAspectRatio: 1.5,
-              children: [
-                _statCard(
-                  'Gross Sales',
-                  _formatAmount(data['grossSales'] as double),
-                  Icons.trending_up_rounded,
-                  AppColors.primary,
-                ),
-                _statCard(
-                  'Net Earnings',
-                  _formatAmount(data['netEarnings'] as double),
-                  Icons.account_balance_wallet_outlined,
-                  AppColors.success,
-                ),
-                _statCard(
-                  'Platform Fee',
-                  _formatAmount(data['commission'] as double),
-                  Icons.percent_rounded,
-                  AppColors.secondary,
-                ),
-                _statCard(
-                  'Pending Payout',
-                  _formatAmount(data['pendingPayout'] as double),
-                  Icons.schedule_outlined,
-                  AppColors.warning,
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.lg),
-
-            // Chart
-            Text('Earnings Trend', style: AppTextStyles.titleLarge),
-            const SizedBox(height: AppSpacing.md),
-            _buildLineChart(data['chartValues'] as List<double>),
-            const SizedBox(height: AppSpacing.lg),
-
-            // Transactions
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Recent Transactions',
-                    style: AppTextStyles.titleLarge),
-                TextButton(
-                  onPressed: () {
-                    // TODO: navigate to full transactions list
-                  },
-                  child: const Text('See All'),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            _buildTransactionHeader(),
-            ..._transactions.map(_buildTransactionRow),
-            const SizedBox(height: AppSpacing.md),
-
-            // Download button
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  // TODO: download report
-                },
-                icon: const Icon(Icons.download_outlined, size: 18),
-                label: const Text('Download Report'),
+      body: Obx(() {
+        if (controller.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Stats grid
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                crossAxisSpacing: AppSpacing.md,
+                mainAxisSpacing: AppSpacing.md,
+                childAspectRatio: 1.5,
+                children: [
+                  _statCard(
+                    'Gross Sales',
+                    _formatAmount(controller.grossSales.value),
+                    Icons.trending_up_rounded,
+                    AppColors.primary,
+                  ),
+                  _statCard(
+                    'Net Earnings',
+                    _formatAmount(controller.netEarnings.value),
+                    Icons.account_balance_wallet_outlined,
+                    AppColors.success,
+                  ),
+                  _statCard(
+                    'Platform Fee',
+                    _formatAmount(controller.commission.value),
+                    Icons.percent_rounded,
+                    AppColors.secondary,
+                  ),
+                  _statCard(
+                    'Pending Payout',
+                    _formatAmount(controller.pendingPayout.value),
+                    Icons.schedule_outlined,
+                    AppColors.warning,
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-          ],
-        ),
-      ),
+              const SizedBox(height: AppSpacing.lg),
+
+              // Chart
+              Text('Earnings Trend', style: AppTextStyles.titleLarge),
+              const SizedBox(height: AppSpacing.md),
+              if (controller.chartValues.isNotEmpty)
+                _buildLineChart(controller.chartValues)
+              else
+                Container(
+                  height: 150,
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: const Center(
+                    child: Text('No chart data available',
+                        style: AppTextStyles.bodyMedium),
+                  ),
+                ),
+              const SizedBox(height: AppSpacing.lg),
+
+              // Transactions
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Recent Transactions', style: AppTextStyles.titleLarge),
+                  TextButton(
+                    onPressed: () {},
+                    child: const Text('See All'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              if (controller.transactions.isEmpty)
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: const Center(
+                    child: Text('No transactions found',
+                        style: AppTextStyles.bodyMedium),
+                  ),
+                )
+              else ...[
+                _buildTransactionHeader(),
+                ...controller.transactions.map(_buildTransactionRow),
+              ],
+              const SizedBox(height: AppSpacing.md),
+
+              // Download button
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.download_outlined, size: 18),
+                  label: const Text('Download Report'),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+            ],
+          ),
+        );
+      }),
     );
   }
 
-  Widget _statCard(
-      String label, String value, IconData icon, Color color) {
+  Widget _statCard(String label, String value, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
@@ -331,6 +286,12 @@ class _FinancialScreenState extends State<FinancialScreen>
   }
 
   Widget _buildTransactionRow(Map<String, dynamic> t) {
+    final amount = (t['amount'] ?? t['grossAmount'] ?? 0).toDouble();
+    final fee = (t['commission'] ?? t['fee'] ?? 0).toDouble();
+    final net = (t['net'] ?? t['netAmount'] ?? (amount - fee)).toDouble();
+    final orderId = t['orderId'] ?? t['orderNumber'] ?? t['_id'] ?? '-';
+    final date = t['date'] ?? t['createdAt'] ?? '-';
+
     return Container(
       padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md, vertical: AppSpacing.sm),
@@ -346,33 +307,29 @@ class _FinancialScreenState extends State<FinancialScreen>
         children: [
           Expanded(
               flex: 2,
-              child: Text('#${t['orderId']}',
+              child: Text('#$orderId',
                   style: AppTextStyles.bodySmall.copyWith(
                       color: AppColors.primary,
                       fontWeight: FontWeight.w500))),
           Expanded(
               flex: 2,
-              child: Text(t['date'] as String,
+              child: Text('$date',
                   style: AppTextStyles.bodySmall,
                   overflow: TextOverflow.ellipsis)),
           Expanded(
-              child: Text(
-                  '₹${(t['amount'] as double).toStringAsFixed(0)}',
+              child: Text('₹${amount.toStringAsFixed(0)}',
                   style: AppTextStyles.bodySmall,
                   textAlign: TextAlign.right)),
           Expanded(
-              child: Text(
-                  '-₹${(t['commission'] as double).toStringAsFixed(0)}',
+              child: Text('-₹${fee.toStringAsFixed(0)}',
                   style: AppTextStyles.bodySmall
                       .copyWith(color: AppColors.error),
                   textAlign: TextAlign.right)),
           Expanded(
-              child: Text(
-                  '₹${(t['net'] as double).toStringAsFixed(0)}',
-                  style: AppTextStyles.bodySmall
-                      .copyWith(
-                          color: AppColors.success,
-                          fontWeight: FontWeight.w600),
+              child: Text('₹${net.toStringAsFixed(0)}',
+                  style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.success,
+                      fontWeight: FontWeight.w600),
                   textAlign: TextAlign.right)),
         ],
       ),
@@ -386,7 +343,7 @@ class _LineChartPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (values.isEmpty) return;
+    if (values.length < 2) return;
 
     final fillPaint = Paint()
       ..shader = LinearGradient(
@@ -412,7 +369,6 @@ class _LineChartPainter extends CustomPainter {
 
     final n = values.length;
     final step = size.width / (n - 1);
-
     final path = Path();
     final fillPath = Path();
 
@@ -431,11 +387,9 @@ class _LineChartPainter extends CustomPainter {
 
     fillPath.lineTo((n - 1) * step, size.height);
     fillPath.close();
-
     canvas.drawPath(fillPath, fillPaint);
     canvas.drawPath(path, linePaint);
 
-    // Draw dots
     for (int i = 0; i < n; i++) {
       final x = i * step;
       final y = size.height - (values[i] * size.height * 0.9);

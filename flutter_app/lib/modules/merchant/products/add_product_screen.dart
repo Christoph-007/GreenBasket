@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:greenbasket_app/config/theme.dart';
+import '../../../data/repositories/merchant_repository.dart';
 
 class AddProductScreen extends StatefulWidget {
   const AddProductScreen({super.key});
@@ -10,14 +11,17 @@ class AddProductScreen extends StatefulWidget {
 }
 
 class _AddProductScreenState extends State<AddProductScreen> {
+  final _repo = MerchantRepository();
   int _currentStep = 0;
   final _formKey = GlobalKey<FormState>();
+  bool _isSubmitting = false;
+  bool _isLoadingCategories = true;
 
   // Step 1
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
-  String? _selectedCategory;
-  String? _selectedSubcategory;
+  String? _selectedCategoryId;
+  String? _selectedCategoryName;
 
   // Step 2
   final _priceController = TextEditingController();
@@ -34,14 +38,27 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final List<String> _tags = [];
   final List<bool> _imageSlots = [false, false, false];
 
-  final List<String> _categories = ['Vegetables', 'Fruits', 'Dairy', 'Grains'];
-  final Map<String, List<String>> _subcategories = {
-    'Vegetables': ['Leafy Greens', 'Root Vegetables', 'Gourds', 'Seasonal'],
-    'Fruits': ['Citrus', 'Tropical', 'Berries', 'Seasonal'],
-    'Dairy': ['Milk', 'Cheese', 'Curd', 'Paneer'],
-    'Grains': ['Rice', 'Wheat', 'Pulses', 'Millets'],
-  };
-  final List<String> _units = ['kg', 'piece', 'bunch', 'litre', 'gram'];
+  // Dynamic data from API
+  List<Map<String, dynamic>> _categories = [];
+  final List<String> _units = ['kg', 'piece', 'bunch', 'litre', 'gram', 'pack'];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    try {
+      final cats = await _repo.getCategories();
+      setState(() {
+        _categories = cats;
+        _isLoadingCategories = false;
+      });
+    } catch (_) {
+      setState(() => _isLoadingCategories = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -67,6 +84,18 @@ class _AddProductScreenState extends State<AddProductScreen> {
   void _removeTag(String tag) => setState(() => _tags.remove(tag));
 
   void _nextStep() {
+    if (_currentStep == 0) {
+      if (_nameController.text.isEmpty) {
+        Get.snackbar('Required', 'Please enter a product name');
+        return;
+      }
+    }
+    if (_currentStep == 1) {
+      if (_priceController.text.isEmpty || _stockController.text.isEmpty) {
+        Get.snackbar('Required', 'Please fill in price and stock');
+        return;
+      }
+    }
     if (_currentStep < 2) setState(() => _currentStep++);
   }
 
@@ -74,16 +103,42 @@ class _AddProductScreenState extends State<AddProductScreen> {
     if (_currentStep > 0) setState(() => _currentStep--);
   }
 
-  void _submitProduct() {
-    // TODO: call API to create product
-    Get.back();
-    Get.snackbar(
-      'Success',
-      'Product added successfully!',
-      backgroundColor: AppColors.success,
-      colorText: Colors.white,
-      snackPosition: SnackPosition.BOTTOM,
-    );
+  Future<void> _submitProduct() async {
+    setState(() => _isSubmitting = true);
+    try {
+      await _repo.addProduct({
+        'name': _nameController.text.trim(),
+        'description': _descController.text.trim(),
+        'category': _selectedCategoryId,
+        'categoryName': _selectedCategoryName,
+        'price': double.tryParse(_priceController.text) ?? 0,
+        'mrp': double.tryParse(_mrpController.text) ?? 0,
+        'stock': int.tryParse(_stockController.text) ?? 0,
+        'unit': _selectedUnit,
+        'minOrderQuantity': int.tryParse(_minOrderController.text) ?? 1,
+        'preparationTime': int.tryParse(_prepTimeController.text) ?? 30,
+        'isOrganic': _isOrganic,
+        'tags': _tags,
+        'keywords': _keywordsController.text
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList(),
+      });
+      Get.back();
+      Get.snackbar(
+        'Success',
+        'Product added successfully!',
+        backgroundColor: AppColors.success,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (_) {
+      Get.snackbar('Error', 'Failed to add product. Please try again.',
+          snackPosition: SnackPosition.BOTTOM);
+    } finally {
+      setState(() => _isSubmitting = false);
+    }
   }
 
   @override
@@ -101,17 +156,19 @@ class _AddProductScreenState extends State<AddProductScreen> {
           child: _buildStepIndicator(),
         ),
       ),
-      body: Form(
-        key: _formKey,
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          child: _currentStep == 0
-              ? _buildStep1()
-              : _currentStep == 1
-                  ? _buildStep2()
-                  : _buildStep3(),
-        ),
-      ),
+      body: _isLoadingCategories
+          ? const Center(child: CircularProgressIndicator())
+          : Form(
+              key: _formKey,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: _currentStep == 0
+                    ? _buildStep1()
+                    : _currentStep == 1
+                        ? _buildStep2()
+                        : _buildStep3(),
+              ),
+            ),
       bottomNavigationBar: _buildBottomNav(),
     );
   }
@@ -158,10 +215,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           ? 'Pricing'
                           : 'Details',
                   style: AppTextStyles.labelSmall.copyWith(
-                    color: isActive
-                        ? AppColors.primary
-                        : AppColors.textSecondary,
-                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                    color:
+                        isActive ? AppColors.primary : AppColors.textSecondary,
+                    fontWeight:
+                        isActive ? FontWeight.w600 : FontWeight.w400,
                   ),
                 ),
                 if (i < 2)
@@ -170,7 +227,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       height: 2,
                       margin: const EdgeInsets.symmetric(
                           horizontal: AppSpacing.xs),
-                      color: isCompleted ? AppColors.primary : AppColors.border,
+                      color: isCompleted
+                          ? AppColors.primary
+                          : AppColors.border,
                     ),
                   ),
               ],
@@ -205,24 +264,27 @@ class _AddProductScreenState extends State<AddProductScreen> {
             maxLines: 4,
           ),
           const SizedBox(height: AppSpacing.md),
-          _buildDropdown(
-            label: 'Category',
-            value: _selectedCategory,
-            items: _categories,
-            onChanged: (v) => setState(() {
-              _selectedCategory = v;
-              _selectedSubcategory = null;
-            }),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          _buildDropdown(
-            label: 'Subcategory',
-            value: _selectedSubcategory,
-            items: _selectedCategory != null
-                ? _subcategories[_selectedCategory!]!
-                : [],
-            onChanged: (v) => setState(() => _selectedSubcategory = v),
-            enabled: _selectedCategory != null,
+          // Dynamic category dropdown from API
+          DropdownButtonFormField<String>(
+            value: _selectedCategoryId,
+            onChanged: (v) {
+              final cat = _categories
+                  .firstWhereOrNull((c) => (c['_id'] ?? c['id']) == v);
+              setState(() {
+                _selectedCategoryId = v;
+                _selectedCategoryName =
+                    cat?['name'] ?? cat?['categoryName'] ?? '';
+              });
+            },
+            style: AppTextStyles.bodyMedium,
+            decoration: const InputDecoration(labelText: 'Category'),
+            hint: const Text('Select category'),
+            items: _categories.map((cat) {
+              final id = cat['_id'] ?? cat['id'] ?? '';
+              final name = cat['name'] ?? cat['categoryName'] ?? '';
+              return DropdownMenuItem<String>(
+                  value: id.toString(), child: Text(name));
+            }).toList(),
           ),
           const SizedBox(height: AppSpacing.xl),
         ],
@@ -278,7 +340,18 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 ),
               ),
               const SizedBox(width: AppSpacing.md),
-              Expanded(child: _buildUnitDropdown()),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: _selectedUnit,
+                  onChanged: (v) => setState(() => _selectedUnit = v!),
+                  style: AppTextStyles.bodyMedium,
+                  decoration: const InputDecoration(labelText: 'Unit'),
+                  items: _units
+                      .map((e) =>
+                          DropdownMenuItem(value: e, child: Text(e)))
+                      .toList(),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: AppSpacing.md),
@@ -386,7 +459,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     label: Text(tag,
                         style: AppTextStyles.labelSmall
                             .copyWith(color: AppColors.primary)),
-                    deleteIcon: const Icon(Icons.close, size: 14),
+                    deleteIcon:
+                        const Icon(Icons.close, size: 14),
                     onDeleted: () => _removeTag(tag),
                     backgroundColor: AppColors.primaryContainer,
                     side: const BorderSide(color: AppColors.primaryLight),
@@ -440,7 +514,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
         padding: EdgeInsets.only(right: index < 2 ? AppSpacing.sm : 0),
         child: GestureDetector(
           onTap: () {
-            // TODO: open image picker
             setState(() => _imageSlots[index] = true);
           },
           child: Container(
@@ -454,9 +527,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 color: _imageSlots[index]
                     ? AppColors.primary
                     : AppColors.border,
-                style: _imageSlots[index]
-                    ? BorderStyle.solid
-                    : BorderStyle.solid,
                 width: _imageSlots[index] ? 1.5 : 1,
               ),
             ),
@@ -512,7 +582,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
         color: AppColors.surface,
         boxShadow: [
           BoxShadow(
-              color: AppColors.shadow, blurRadius: 8, offset: Offset(0, -2))
+              color: AppColors.shadow,
+              blurRadius: 8,
+              offset: Offset(0, -2))
         ],
       ),
       child: SafeArea(
@@ -529,8 +601,16 @@ class _AddProductScreenState extends State<AddProductScreen> {
             Expanded(
               flex: 2,
               child: ElevatedButton(
-                onPressed: _currentStep < 2 ? _nextStep : _submitProduct,
-                child: Text(_currentStep < 2 ? 'Next Step' : 'Add Product'),
+                onPressed: _isSubmitting
+                    ? null
+                    : (_currentStep < 2 ? _nextStep : _submitProduct),
+                child: _isSubmitting
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
+                    : Text(_currentStep < 2 ? 'Next Step' : 'Add Product'),
               ),
             ),
           ],
@@ -539,9 +619,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
     );
   }
 
-  Widget _sectionHeader(String title) {
-    return Text(title, style: AppTextStyles.titleLarge);
-  }
+  Widget _sectionHeader(String title) =>
+      Text(title, style: AppTextStyles.titleLarge);
 
   Widget _buildTextField({
     required TextEditingController controller,
@@ -565,36 +644,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
         prefixText: prefixText,
         suffixText: suffixText,
       ),
-    );
-  }
-
-  Widget _buildDropdown({
-    required String label,
-    required String? value,
-    required List<String> items,
-    required void Function(String?) onChanged,
-    bool enabled = true,
-  }) {
-    return DropdownButtonFormField<String>(
-      value: value,
-      onChanged: enabled ? onChanged : null,
-      style: AppTextStyles.bodyMedium,
-      decoration: InputDecoration(labelText: label),
-      items: items
-          .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-          .toList(),
-    );
-  }
-
-  Widget _buildUnitDropdown() {
-    return DropdownButtonFormField<String>(
-      value: _selectedUnit,
-      onChanged: (v) => setState(() => _selectedUnit = v!),
-      style: AppTextStyles.bodyMedium,
-      decoration: const InputDecoration(labelText: 'Unit'),
-      items: _units
-          .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-          .toList(),
     );
   }
 }

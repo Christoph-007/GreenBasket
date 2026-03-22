@@ -1,67 +1,69 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:greenbasket_app/config/theme.dart';
+import '../../../data/repositories/merchant_repository.dart';
 
 class DeliveryZonesScreen extends StatefulWidget {
   const DeliveryZonesScreen({super.key});
 
   @override
-  State<DeliveryZonesScreen> createState() => _DeliveryZonesScreenState();
+  State<DeliveryZonesScreen> createState() =>
+      _DeliveryZonesScreenState();
 }
 
 class _DeliveryZonesScreenState extends State<DeliveryZonesScreen> {
-  // Mock zones — TODO: fetch from API
-  final List<Map<String, dynamic>> _zones = [
-    {
-      'name': 'Central Zone',
-      'radius': 3.0,
-      'charge': 30.0,
-      'minOrder': 150.0,
-      'active': true,
-    },
-    {
-      'name': 'East Zone',
-      'radius': 5.0,
-      'charge': 45.0,
-      'minOrder': 200.0,
-      'active': true,
-    },
-    {
-      'name': 'West Zone',
-      'radius': 8.0,
-      'charge': 60.0,
-      'minOrder': 300.0,
-      'active': false,
-    },
-    {
-      'name': 'Suburbs',
-      'radius': 15.0,
-      'charge': 80.0,
-      'minOrder': 500.0,
-      'active': true,
-    },
-  ];
+  final _repo = MerchantRepository();
+  bool _isLoading = true;
+  List<Map<String, dynamic>> _zones = [];
 
-  void _deleteZone(int index) {
-    showDialog(
+  @override
+  void initState() {
+    super.initState();
+    _fetchZones();
+  }
+
+  Future<void> _fetchZones() async {
+    try {
+      final zones = await _repo.getDeliveryZones();
+      setState(() {
+        _zones = zones;
+        _isLoading = false;
+      });
+    } catch (_) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _toggleZone(String id, bool active, int index) async {
+    try {
+      await _repo.toggleZone(id, active);
+      setState(() => _zones[index]['active'] = active);
+    } catch (_) {
+      Get.snackbar('Error', 'Could not update zone status');
+    }
+  }
+
+  Future<void> _deleteZone(int index) async {
+    final zone = _zones[index];
+    final id = zone['_id'] ?? zone['id'] ?? '';
+    final name = zone['name'] ?? 'Zone';
+
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.lg)),
         title: Text('Delete Zone', style: AppTextStyles.titleLarge),
         content: Text(
-            'Delete "${_zones[index]['name']}"? Customers in this zone won\'t be able to order.',
+            'Delete "$name"? Customers in this zone won\'t be able to order.',
             style: AppTextStyles.bodyMedium
                 .copyWith(color: AppColors.textSecondary)),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx),
+              onPressed: () => Navigator.pop(ctx, false),
               child: const Text('Cancel')),
           ElevatedButton(
-            onPressed: () {
-              setState(() => _zones.removeAt(index));
-              Navigator.pop(ctx);
-            },
+            onPressed: () => Navigator.pop(ctx, true),
             style:
                 ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             child: const Text('Delete'),
@@ -69,6 +71,19 @@ class _DeliveryZonesScreenState extends State<DeliveryZonesScreen> {
         ],
       ),
     );
+
+    if (confirmed == true) {
+      try {
+        if (id.isNotEmpty) {
+          await _repo.deleteZone(id);
+        }
+        setState(() => _zones.removeAt(index));
+        Get.snackbar('Deleted', 'Zone removed',
+            snackPosition: SnackPosition.BOTTOM);
+      } catch (_) {
+        Get.snackbar('Error', 'Could not delete zone');
+      }
+    }
   }
 
   @override
@@ -81,120 +96,165 @@ class _DeliveryZonesScreenState extends State<DeliveryZonesScreen> {
           icon: const Icon(Icons.arrow_back_ios_new, size: 20),
           onPressed: () => Get.back(),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              setState(() => _isLoading = true);
+              _fetchZones();
+            },
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Map placeholder
-            Container(
-              height: 220,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: const Color(0xFFE8F0E8),
-                borderRadius: BorderRadius.circular(AppRadius.lg),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Stack(
-                children: [
-                  // Grid lines to simulate map
-                  CustomPaint(
-                    size: const Size(double.infinity, 220),
-                    painter: _MapGridPainter(),
-                  ),
-                  Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _fetchZones,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Map placeholder
+                    Container(
+                      height: 220,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE8F0E8),
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Stack(
+                        children: [
+                          CustomPaint(
+                            size: const Size(double.infinity, 220),
+                            painter: _MapGridPainter(),
+                          ),
+                          Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding:
+                                      const EdgeInsets.all(AppSpacing.md),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        AppColors.surface.withOpacity(0.9),
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                          color: AppColors.shadow,
+                                          blurRadius: 8)
+                                    ],
+                                  ),
+                                  child: const Icon(Icons.location_on,
+                                      color: AppColors.primary, size: 36),
+                                ),
+                                const SizedBox(height: AppSpacing.md),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: AppSpacing.md,
+                                      vertical: AppSpacing.sm),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        AppColors.surface.withOpacity(0.9),
+                                    borderRadius: BorderRadius.circular(
+                                        AppRadius.full),
+                                  ),
+                                  child: Text(
+                                    'Zone map visualization',
+                                    style: AppTextStyles.bodyMedium.copyWith(
+                                        color: AppColors.textSecondary),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Positioned(
+                            top: AppSpacing.md,
+                            right: AppSpacing.md,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.md,
+                                  vertical: AppSpacing.xs),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.full),
+                              ),
+                              child: Text(
+                                '${_zones.where((z) => z['active'] == true).length} active zones',
+                                style: AppTextStyles.labelSmall
+                                    .copyWith(color: Colors.white),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(AppSpacing.md),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface.withOpacity(0.9),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                  color: AppColors.shadow,
-                                  blurRadius: 8)
-                            ],
-                          ),
-                          child: const Icon(Icons.location_on,
-                              color: AppColors.primary, size: 36),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.md,
-                              vertical: AppSpacing.sm),
-                          decoration: BoxDecoration(
-                            color:
-                                AppColors.surface.withOpacity(0.9),
-                            borderRadius:
-                                BorderRadius.circular(AppRadius.full),
-                          ),
-                          child: Text(
-                            'Zone map coming soon',
-                            style: AppTextStyles.bodyMedium.copyWith(
-                                color: AppColors.textSecondary),
-                          ),
-                        ),
+                        Text('Delivery Zones',
+                            style: AppTextStyles.titleLarge),
+                        Text('${_zones.length} zones',
+                            style: AppTextStyles.bodySmall),
                       ],
                     ),
-                  ),
-                  // Zone count indicator
-                  Positioned(
-                    top: AppSpacing.md,
-                    right: AppSpacing.md,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md,
-                          vertical: AppSpacing.xs),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius:
-                            BorderRadius.circular(AppRadius.full),
-                      ),
-                      child: Text(
-                        '${_zones.where((z) => z['active'] as bool).length} active zones',
-                        style: AppTextStyles.labelSmall
-                            .copyWith(color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ],
+                    const SizedBox(height: AppSpacing.md),
+
+                    if (_zones.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(AppSpacing.xl),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius:
+                              BorderRadius.circular(AppRadius.lg),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: const Center(
+                          child: Text(
+                            'No delivery zones configured.\nTap + Add Zone to get started.',
+                            textAlign: TextAlign.center,
+                            style: AppTextStyles.bodyMedium,
+                          ),
+                        ),
+                      )
+                    else
+                      ...List.generate(
+                          _zones.length,
+                          (i) => _buildZoneCard(_zones[i], i)),
+                    const SizedBox(height: AppSpacing.xl),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: AppSpacing.lg),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Delivery Zones', style: AppTextStyles.titleLarge),
-                Text('${_zones.length} zones',
-                    style: AppTextStyles.bodySmall),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.md),
-
-            ..._zones.asMap().entries.map((e) =>
-                _buildZoneCard(e.value, e.key)),
-            const SizedBox(height: AppSpacing.xl),
-          ],
-        ),
-      ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Get.toNamed('/merchant/zones/edit'),
+        onPressed: () async {
+          final result =
+              await Get.toNamed('/merchant/zones/edit');
+          if (result == true) _fetchZones();
+        },
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
-        label:
-            Text('Add Zone', style: AppTextStyles.labelLarge),
+        label: Text('Add Zone', style: AppTextStyles.labelLarge),
       ),
     );
   }
 
   Widget _buildZoneCard(Map<String, dynamic> zone, int index) {
-    final isActive = zone['active'] as bool;
+    final id = zone['_id'] ?? zone['id'] ?? '';
+    final name = zone['name'] ?? 'Unnamed Zone';
+    final radius = (zone['radius'] ?? 0).toDouble();
+    final charge = (zone['charge'] ?? zone['deliveryCharge'] ?? 0).toDouble();
+    final minOrder =
+        (zone['minOrder'] ?? zone['minimumOrder'] ?? 0).toDouble();
+    final isActive = zone['active'] == true;
+
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       decoration: BoxDecoration(
@@ -223,9 +283,7 @@ class _DeliveryZonesScreenState extends State<DeliveryZonesScreen> {
                   ),
                   child: Icon(
                     Icons.radio_button_checked,
-                    color: isActive
-                        ? AppColors.primary
-                        : AppColors.textHint,
+                    color: isActive ? AppColors.primary : AppColors.textHint,
                     size: 24,
                   ),
                 ),
@@ -234,19 +292,15 @@ class _DeliveryZonesScreenState extends State<DeliveryZonesScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(zone['name'] as String,
-                          style: AppTextStyles.titleMedium),
-                      Text(
-                        '${zone['radius']} km radius',
-                        style: AppTextStyles.bodySmall,
-                      ),
+                      Text(name, style: AppTextStyles.titleMedium),
+                      Text('${radius.toStringAsFixed(1)} km radius',
+                          style: AppTextStyles.bodySmall),
                     ],
                   ),
                 ),
                 Switch(
                   value: isActive,
-                  onChanged: (v) =>
-                      setState(() => _zones[index]['active'] = v),
+                  onChanged: (v) => _toggleZone(id, v, index),
                   activeColor: AppColors.primary,
                 ),
               ],
@@ -261,32 +315,30 @@ class _DeliveryZonesScreenState extends State<DeliveryZonesScreen> {
                   child: _zoneInfoItem(
                     Icons.delivery_dining_outlined,
                     'Delivery',
-                    '₹${(zone['charge'] as double).toStringAsFixed(0)}',
+                    '₹${charge.toStringAsFixed(0)}',
                   ),
                 ),
-                Container(
-                    width: 1,
-                    height: 32,
-                    color: AppColors.border),
+                Container(width: 1, height: 32, color: AppColors.border),
                 Expanded(
                   child: _zoneInfoItem(
                     Icons.shopping_bag_outlined,
                     'Min Order',
-                    '₹${(zone['minOrder'] as double).toStringAsFixed(0)}',
+                    '₹${minOrder.toStringAsFixed(0)}',
                   ),
                 ),
-                Container(
-                    width: 1,
-                    height: 32,
-                    color: AppColors.border),
+                Container(width: 1, height: 32, color: AppColors.border),
                 Expanded(
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       IconButton(
-                        onPressed: () => Get.toNamed(
-                            '/merchant/zones/edit',
-                            arguments: zone),
+                        onPressed: () async {
+                          final result =
+                              await Get.toNamed(
+                                  '/merchant/zones/edit',
+                                  arguments: zone);
+                          if (result == true) _fetchZones();
+                        },
                         icon: const Icon(Icons.edit_outlined,
                             size: 20,
                             color: AppColors.textSecondary),
@@ -331,7 +383,6 @@ class _MapGridPainter extends CustomPainter {
     final paint = Paint()
       ..color = AppColors.primary.withOpacity(0.06)
       ..strokeWidth = 1;
-
     for (double x = 0; x < size.width; x += 30) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
     }

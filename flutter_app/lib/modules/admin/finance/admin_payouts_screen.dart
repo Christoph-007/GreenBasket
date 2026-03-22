@@ -12,55 +12,7 @@ class AdminPayoutsScreen extends StatefulWidget {
 class _AdminPayoutsScreenState extends State<AdminPayoutsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-
-  // Mock payouts — replace with API call
-  final List<Map<String, dynamic>> _payouts = [
-    {
-      'id': 'PAY001',
-      'merchant': 'Fresh Farms Organics',
-      'amount': '₹28,450',
-      'bankLast4': '4523',
-      'requestDate': '20 Mar 2024',
-      'status': 'Pending',
-      'tab': 0,
-    },
-    {
-      'id': 'PAY002',
-      'merchant': 'Green Grocers',
-      'amount': '₹15,200',
-      'bankLast4': '8901',
-      'requestDate': '20 Mar 2024',
-      'status': 'Pending',
-      'tab': 0,
-    },
-    {
-      'id': 'PAY003',
-      'merchant': 'Organic World',
-      'amount': '₹42,800',
-      'bankLast4': '2234',
-      'requestDate': '19 Mar 2024',
-      'status': 'Processing',
-      'tab': 1,
-    },
-    {
-      'id': 'PAY004',
-      'merchant': 'Farm Fresh',
-      'amount': '₹9,600',
-      'bankLast4': '5567',
-      'requestDate': '18 Mar 2024',
-      'status': 'Completed',
-      'tab': 2,
-    },
-    {
-      'id': 'PAY005',
-      'merchant': 'Nature Basket',
-      'amount': '₹21,000',
-      'bankLast4': '7789',
-      'requestDate': '17 Mar 2024',
-      'status': 'Completed',
-      'tab': 2,
-    },
-  ];
+  final controller = Get.find<AdminController>();
 
   @override
   void initState() {
@@ -80,16 +32,27 @@ class _AdminPayoutsScreenState extends State<AdminPayoutsScreen>
         return AppColors.warning;
       case 'Processing':
         return AppColors.info;
+      case 'Completed':
+        return AppColors.success;
+      case 'Rejected':
+        return AppColors.error;
       default:
         return AppColors.success;
     }
   }
 
   List<Map<String, dynamic>> _payoutsForTab(int tab) {
-    return _payouts.where((p) => p['tab'] == tab).toList().cast<Map<String, dynamic>>();
+    String status = 'Pending';
+    if (tab == 1) status = 'Processing';
+    if (tab == 2) status = 'Completed';
+    return controller.payouts.where((p) => (p['status'] ?? 'Pending') == status).toList().cast<Map<String, dynamic>>();
   }
 
   void _showProcessDialog(Map<String, dynamic> payout) {
+    final amount = payout['amount']?.toString() ?? '0';
+    final name = payout['merchant']?['name']?.toString() ?? payout['agent']?['name']?.toString() ?? 'Unknown';
+    final id = payout['_id'] ?? payout['id'];
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -99,21 +62,16 @@ class _AdminPayoutsScreenState extends State<AdminPayoutsScreen>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Merchant: ${payout['merchant']}', style: AppTextStyles.bodyMedium),
-            Text('Amount: ${payout['amount']}', style: AppTextStyles.titleMedium.copyWith(color: AppColors.primary)),
-            Text('Bank Account ending ****${payout['bankLast4']}', style: AppTextStyles.bodySmall),
+            Text('Recipient: $name', style: AppTextStyles.bodyMedium),
+            Text('Amount: ₹$amount', style: AppTextStyles.titleMedium.copyWith(color: AppColors.primary)),
           ],
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () {
-              // TODO: Call API to process payout
-              setState(() => payout['status'] = 'Processing');
+              controller.processPayout(id, true);
               Navigator.pop(ctx);
-              Get.snackbar('Payout Initiated',
-                  'Payout of ${payout['amount']} to ${payout['merchant']} is being processed.',
-                  backgroundColor: AppColors.success, colorText: Colors.white);
             },
             child: const Text('Process'),
           ),
@@ -125,24 +83,28 @@ class _AdminPayoutsScreenState extends State<AdminPayoutsScreen>
   void _showBulkProcessDialog() {
     final pending = _payoutsForTab(0);
     if (pending.isEmpty) return;
-    final totalAmount = '₹${pending.length * 20000}'; // Mock total
+    
+    double totalAmount = 0;
+    for (var p in pending) {
+      totalAmount += (p['amount'] as num?)?.toDouble() ?? 0.0;
+    }
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
         title: const Text('Bulk Process Payouts?', style: AppTextStyles.titleLarge),
         content: Text(
-          'Process all ${pending.length} pending payouts (approx. $totalAmount total)?',
+          'Process all ${pending.length} pending payouts (Total: ₹$totalAmount)?',
           style: AppTextStyles.bodyMedium,
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () {
-              // TODO: Call API to bulk process payouts
+              final ids = pending.map((p) => p['_id'] ?? p['id']).cast<String>().toList();
+              controller.bulkProcessPayouts(ids, true);
               Navigator.pop(ctx);
-              Get.snackbar('Bulk Processing', 'All pending payouts are being processed.',
-                  backgroundColor: AppColors.success, colorText: Colors.white);
             },
             child: const Text('Process All'),
           ),
@@ -156,7 +118,7 @@ class _AdminPayoutsScreenState extends State<AdminPayoutsScreen>
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Merchant Payouts'),
+        title: const Text('Payout Requests'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, size: 18),
           onPressed: () => Get.back(),
@@ -173,7 +135,7 @@ class _AdminPayoutsScreenState extends State<AdminPayoutsScreen>
           ],
         ),
       ),
-      body: Column(
+      body: Obx(() => Column(
         children: [
           _buildPendingBanner(),
           Expanded(
@@ -182,7 +144,7 @@ class _AdminPayoutsScreenState extends State<AdminPayoutsScreen>
               children: [0, 1, 2].map((tab) {
                 final payouts = _payoutsForTab(tab);
                 return payouts.isEmpty
-                    ? const Center(child: Text('No payouts in this category.'))
+                    ? Center(child: Text('No payouts in this category.'))
                     : ListView.builder(
                         padding: const EdgeInsets.all(AppSpacing.md),
                         itemCount: payouts.length,
@@ -192,12 +154,17 @@ class _AdminPayoutsScreenState extends State<AdminPayoutsScreen>
             ),
           ),
         ],
-      ),
+      )),
     );
   }
 
   Widget _buildPendingBanner() {
     final pending = _payoutsForTab(0);
+    double totalAmount = 0;
+    for (var p in pending) {
+      totalAmount += (p['amount'] as num?)?.toDouble() ?? 0.0;
+    }
+
     return Container(
       color: AppColors.warning.withOpacity(0.1),
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
@@ -209,13 +176,13 @@ class _AdminPayoutsScreenState extends State<AdminPayoutsScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Total Pending: ₹43,650', style: AppTextStyles.titleMedium.copyWith(color: AppColors.warning)),
+                Text('Total Pending: ₹$totalAmount', style: AppTextStyles.titleMedium.copyWith(color: AppColors.warning)),
                 Text('${pending.length} payout requests awaiting', style: AppTextStyles.bodySmall),
               ],
             ),
           ),
           ElevatedButton(
-            onPressed: _showBulkProcessDialog,
+            onPressed: pending.isNotEmpty ? _showBulkProcessDialog : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.warning,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -229,7 +196,12 @@ class _AdminPayoutsScreenState extends State<AdminPayoutsScreen>
   }
 
   Widget _buildPayoutCard(Map<String, dynamic> payout) {
-    final status = payout['status'] as String;
+    final status = payout['status'] as String? ?? 'Pending';
+    final name = payout['merchant']?['name']?.toString() ?? payout['agent']?['name']?.toString() ?? 'Unknown';
+    final amount = payout['amount']?.toString() ?? '0';
+    final date = payout['createdAt']?.toString().split('T')[0] ?? 'N/A';
+    final type = payout['merchant'] != null ? 'Merchant' : 'Agent';
+
     return Card(
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Padding(
@@ -246,15 +218,19 @@ class _AdminPayoutsScreenState extends State<AdminPayoutsScreen>
                     color: AppColors.primaryContainer,
                     borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
-                  child: const Icon(Icons.store_outlined, color: AppColors.primary, size: 20),
+                  child: Icon(
+                    type == 'Merchant' ? Icons.store_outlined : Icons.delivery_dining_outlined,
+                    color: AppColors.primary,
+                    size: 20
+                  ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(payout['merchant'] as String, style: AppTextStyles.titleMedium),
-                      Text('Bank ****${payout['bankLast4']}', style: AppTextStyles.bodySmall),
+                      Text(name, style: AppTextStyles.titleMedium),
+                      Text('$type Payout', style: AppTextStyles.bodySmall),
                     ],
                   ),
                 ),
@@ -279,14 +255,14 @@ class _AdminPayoutsScreenState extends State<AdminPayoutsScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Amount', style: AppTextStyles.bodySmall),
-                    Text(payout['amount'] as String, style: AppTextStyles.headlineMedium.copyWith(color: AppColors.primary)),
+                    Text('₹$amount', style: AppTextStyles.headlineMedium.copyWith(color: AppColors.primary)),
                   ],
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text('Requested', style: AppTextStyles.bodySmall),
-                    Text(payout['requestDate'] as String, style: AppTextStyles.bodyMedium),
+                    Text(date, style: AppTextStyles.bodyMedium),
                   ],
                 ),
               ],

@@ -62,6 +62,7 @@ class UserModel {
   UserModel copyWith({
     String? name,
     String? avatar,
+    String? role,
     double? walletBalance,
     int? loyaltyPoints,
     String? loyaltyTier,
@@ -72,7 +73,7 @@ class UserModel {
       name: name ?? this.name,
       email: email,
       phone: phone,
-      role: role,
+      role: role ?? this.role,
       avatar: avatar ?? this.avatar,
       isVerified: isVerified,
       walletBalance: walletBalance ?? this.walletBalance,

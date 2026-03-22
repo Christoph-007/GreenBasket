@@ -32,13 +32,28 @@ class AuthController extends GetxController {
       errorMessage.value = '';
       final result = await _repo.login(email: email, password: password);
       if (result['success'] == true) {
-        // Corrected: Backend sends token and user at top level
-        _storage.saveToken(result['token'] ?? result['data']?['token']);
-        final u = UserModel.fromJson(result['user'] ?? result['data']?['user'] ?? {});
-        _storage.saveUser(u);
-        _storage.saveRole(u.role);
-        user.value = u;
-        _navigateByRole(u.role);
+        // Clear previous session data first to prevent profile mismatch
+        _storage.clearAll();
+        
+        final token = result['token'] ?? result['data']?['token'];
+        _storage.saveToken(token);
+        
+        final topRole = result['role'] ?? result['data']?['role'];
+        final uJson = Map<String, dynamic>.from(result['user'] ?? result['data']?['user'] ?? {});
+        
+        // Ensure role exists in the user model data
+        if (topRole != null && (uJson['role'] == null || uJson['role'] == '')) {
+          uJson['role'] = topRole;
+        }
+
+        final u = UserModel.fromJson(uJson);
+        final finalRole = topRole ?? u.role;
+        final updatedUser = u.copyWith(role: finalRole);
+
+        _storage.saveUser(updatedUser);
+        _storage.saveRole(finalRole);
+        user.value = updatedUser;
+        _navigateByRole(finalRole);
       } else {
         errorMessage.value = result['message'] ?? 'Login failed';
       }
@@ -89,13 +104,30 @@ class AuthController extends GetxController {
       errorMessage.value = '';
       final result = await _repo.verifyOtp(email: email, otp: otp);
       if (result['success'] == true) {
-        // Corrected: Backend sends token and user at top level
-        _storage.saveToken(result['token'] ?? result['data']?['token']);
-        final u = UserModel.fromJson(result['user'] ?? result['data']?['user'] ?? {});
-        _storage.saveUser(u);
-        _storage.saveRole(u.role);
-        user.value = u;
-        _navigateByRole(u.role);
+        // Clear previous session data first to prevent profile mismatch
+        _storage.clearAll();
+
+        final token = result['token'] ?? result['data']?['token'];
+        _storage.saveToken(token);
+        
+        final topRole = result['role'] ?? result['data']?['role'];
+        final uJson = Map<String, dynamic>.from(result['user'] ?? result['data']?['user'] ?? {});
+        
+        // Ensure role exists in the user model data
+        if (topRole != null && (uJson['role'] == null || uJson['role'] == '')) {
+          uJson['role'] = topRole;
+        }
+
+        final u = UserModel.fromJson(uJson);
+        final finalRole = topRole ?? u.role;
+        final updatedUser = u.copyWith(role: finalRole);
+
+        _storage.saveUser(updatedUser);
+        _storage.saveRole(finalRole);
+        user.value = updatedUser;
+        
+        Get.snackbar('Success', 'Phone verified successfully');
+        _navigateByRole(finalRole);
       } else {
         errorMessage.value = result['message'] ?? 'Invalid OTP';
       }
@@ -146,21 +178,15 @@ class AuthController extends GetxController {
   }
 
   void _navigateByRole(String role) {
-    switch (role) {
-      case AppConstants.roleCustomer:
-        Get.offAllNamed(Routes.customerHome);
-        break;
-      case AppConstants.roleMerchant:
-        Get.offAllNamed(Routes.merchantDashboard);
-        break;
-      case AppConstants.roleAdmin:
-        Get.offAllNamed(Routes.adminDashboard);
-        break;
-      case AppConstants.roleAgent:
-        Get.offAllNamed(Routes.agentCurrentJob);
-        break;
-      default:
-        Get.offAllNamed(Routes.customerHome);
+    final r = role.toLowerCase().trim();
+    if (r == AppConstants.roleMerchant) {
+      Get.offAllNamed(Routes.merchantDashboard);
+    } else if (r == AppConstants.roleAdmin || r == 'super-admin' || r == 'moderator') {
+      Get.offAllNamed(Routes.adminDashboard);
+    } else if (r == AppConstants.roleAgent || r == 'agent' || r == 'delivery_agent') {
+      Get.offAllNamed(Routes.agentDashboard);
+    } else {
+      Get.offAllNamed(Routes.customerHome);
     }
   }
 }

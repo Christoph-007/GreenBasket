@@ -139,7 +139,7 @@ class OrderDetailScreen extends StatelessWidget {
                       IconButton(
                         icon: const Icon(Icons.call_outlined,
                             color: AppColors.primary),
-                        onPressed: () {},
+                        onPressed: () => Get.snackbar('Call', 'Connecting to delivery agent...'),
                       ),
                     ],
                   ),
@@ -270,7 +270,7 @@ class OrderDetailScreen extends StatelessWidget {
               // Cancel button for eligible orders
               if (['pending', 'confirmed'].contains(order.status))
                 OutlinedButton(
-                  onPressed: () {},
+                  onPressed: () => Get.snackbar('Cancel', 'Order cancellation procedure started'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.error,
                     side: const BorderSide(color: AppColors.error),

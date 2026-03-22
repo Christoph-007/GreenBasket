@@ -15,6 +15,8 @@ import 'modules/auth/forgot_password/forgot_password_screen.dart';
 import 'modules/customer/customer_shell.dart';
 
 // Customer standalone
+import 'modules/customer/products/categories_screen.dart';
+import 'modules/customer/cart/cart_screen.dart';
 import 'modules/customer/products/product_detail_screen.dart';
 import 'modules/customer/products/search_screen.dart';
 import 'modules/customer/products/recipe_screen.dart';
@@ -127,6 +129,8 @@ class App extends StatelessWidget {
         GetPage(name: Routes.customerHome, page: () => const CustomerShell()),
 
         // ─── Customer Standalone ─────────────────────────────────────────
+        GetPage(name: Routes.categories, page: () => const CategoriesScreen()),
+        GetPage(name: Routes.cart, page: () => const CartScreen()),
         GetPage(name: Routes.productDetail, page: () => const ProductDetailScreen()),
         GetPage(name: Routes.search, page: () => const SearchScreen()),
         GetPage(name: Routes.categoryDetail, page: () => const CategoryDetailScreen()),
@@ -157,10 +161,10 @@ class App extends StatelessWidget {
 
         // ─── Merchant Standalone ─────────────────────────────────────────
         GetPage(name: Routes.merchantAddProduct, page: () => const AddProductScreen()),
-        GetPage(name: Routes.merchantEditProduct, page: () => const EditProductScreen()),
-        GetPage(name: Routes.merchantProductStock, page: () => const ProductStockScreen()),
+        GetPage(name: Routes.merchantEditProduct, page: () => EditProductScreen(product: Get.arguments)),
+        GetPage(name: Routes.merchantProductStock, page: () => ProductStockScreen(product: Get.arguments)),
         GetPage(name: Routes.merchantBulkUpload, page: () => const BulkUploadScreen()),
-        GetPage(name: Routes.merchantOrderDetail, page: () => const MerchantOrderDetailScreen()),
+        GetPage(name: Routes.merchantOrderDetail, page: () => MerchantOrderDetailScreen(order: Get.arguments)),
         GetPage(name: Routes.merchantOffers, page: () => const OffersScreen()),
         GetPage(name: Routes.merchantCreateOffer, page: () => const CreateOfferScreen()),
         GetPage(name: Routes.merchantOfferAnalytics, page: () => const OfferAnalyticsScreen()),

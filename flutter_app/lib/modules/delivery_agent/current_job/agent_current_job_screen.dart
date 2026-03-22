@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:greenbasket_app/config/theme.dart';
+import 'package:greenbasket_app/utils/helpers.dart';
+import '../agent_controller.dart';
 import '../navigation/navigation_screen.dart';
-
-// TODO: Replace mock data with AgentController + API calls
 
 enum DeliveryStage { reachedPickup, pickedUp, reachedCustomer, delivered }
 
@@ -14,21 +15,8 @@ class AgentCurrentJobScreen extends StatefulWidget {
 }
 
 class _AgentCurrentJobScreenState extends State<AgentCurrentJobScreen> {
-  bool _isOnline = true;
+  final controller = Get.put(AgentController());
   DeliveryStage _stage = DeliveryStage.reachedPickup;
-
-  // Mock active job data — replace with API response
-  final Map<String, dynamic> _activeJob = {
-    'orderId': 'GB2024087',
-    'customerName': 'Ananya S.',
-    'customerPhone': '+91 98765 43210',
-    'pickupAddress': 'Priya\'s Organic Store, HSR Layout, Bengaluru',
-    'deliveryAddress': '14B, Koramangala 5th Block, Bengaluru 560095',
-    'items': '3 items — Spinach, Tomatoes, Carrots',
-    'amount': '₹348.00',
-    'distance': '3.2 km',
-    'estimatedTime': '18 mins',
-  };
 
   String get _stageLabel {
     switch (_stage) {
@@ -56,8 +44,25 @@ class _AgentCurrentJobScreenState extends State<AgentCurrentJobScreen> {
     }
   }
 
-  void _advanceStage() {
+  String get _backendStatus {
+    switch (_stage) {
+      case DeliveryStage.reachedPickup:
+        return 'picked_up';
+      case DeliveryStage.pickedUp:
+        return 'out_for_delivery';
+      case DeliveryStage.reachedCustomer:
+        return 'delivered';
+      case DeliveryStage.delivered:
+        return 'delivered';
+    }
+  }
+
+  void _advanceStage(String assignmentId) {
     if (_stage == DeliveryStage.delivered) return;
+    
+    // Call controller to update status in backend
+    controller.updateDeliveryStatus(assignmentId, _backendStatus);
+    
     setState(() {
       _stage = DeliveryStage.values[_stage.index + 1];
     });
@@ -68,26 +73,41 @@ class _AgentCurrentJobScreenState extends State<AgentCurrentJobScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              if (_isOnline) ...[
-                _buildActiveJobCard(),
-                _buildMapPlaceholder(),
-                _buildActionButtons(),
-                _buildTodaySummary(),
-              ] else
-                _buildOfflineState(),
-            ],
-          ),
-        ),
+        child: Obx(() {
+          if (controller.isLoading.value && controller.agentProfile.value == null) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          return SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(),
+                if (controller.isOnline.value) ...[
+                  if (controller.currentAssignment.value != null) ...[
+                    _buildActiveJobCard(controller.currentAssignment.value!),
+                    _buildMapPlaceholder(controller.currentAssignment.value!),
+                    _buildActionButtons(controller.currentAssignment.value!),
+                  ] else
+                    const Padding(
+                      padding: EdgeInsets.all(AppSpacing.xl),
+                      child: Center(
+                        child: Text('No active delivery assignments'),
+                      ),
+                    ),
+                  _buildTodaySummary(),
+                ] else
+                  _buildOfflineState(),
+              ],
+            ),
+          );
+        }),
       ),
     );
   }
 
   Widget _buildHeader() {
+    final profile = controller.agentProfile.value ?? {};
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
@@ -107,14 +127,14 @@ class _AgentCurrentJobScreenState extends State<AgentCurrentJobScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Good morning, Ravi!',
+                'Hi, ${profile['name'] ?? 'Agent'}!',
                 style: AppTextStyles.headlineMedium.copyWith(
                   color: Colors.white,
                 ),
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(
-                _isOnline ? 'You are online' : 'You are offline',
+                controller.isOnline.value ? 'You are online' : 'You are offline',
                 style: AppTextStyles.bodySmall.copyWith(
                   color: Colors.white.withOpacity(0.8),
                 ),
@@ -124,15 +144,15 @@ class _AgentCurrentJobScreenState extends State<AgentCurrentJobScreen> {
           Row(
             children: [
               Text(
-                _isOnline ? 'Online' : 'Offline',
+                controller.isOnline.value ? 'Online' : 'Offline',
                 style: AppTextStyles.labelLarge.copyWith(
                   color: Colors.white,
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
               Switch(
-                value: _isOnline,
-                onChanged: (val) => setState(() => _isOnline = val),
+                value: controller.isOnline.value,
+                onChanged: (_) => controller.toggleStatus(),
                 activeColor: Colors.white,
                 activeTrackColor: AppColors.success,
                 inactiveThumbColor: Colors.white,
@@ -145,7 +165,11 @@ class _AgentCurrentJobScreenState extends State<AgentCurrentJobScreen> {
     );
   }
 
-  Widget _buildActiveJobCard() {
+  Widget _buildActiveJobCard(Map<String, dynamic> job) {
+    // Basic mapping for API data
+    final order = job['order'] ?? {};
+    final shipping = order['shippingAddress'] ?? {};
+    
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Container(
@@ -154,15 +178,14 @@ class _AgentCurrentJobScreenState extends State<AgentCurrentJobScreen> {
           borderRadius: BorderRadius.circular(AppRadius.lg),
           boxShadow: [
             BoxShadow(
-              color: AppColors.shadow,
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: AppColors.shadow.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Column(
           children: [
-            // Card header
             Container(
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.md,
@@ -179,7 +202,7 @@ class _AgentCurrentJobScreenState extends State<AgentCurrentJobScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Order #${_activeJob['orderId']}',
+                    'Order #${order['orderNumber'] ?? 'N/A'}',
                     style: AppTextStyles.titleMedium.copyWith(
                       color: AppColors.primary,
                     ),
@@ -192,7 +215,6 @@ class _AgentCurrentJobScreenState extends State<AgentCurrentJobScreen> {
               padding: const EdgeInsets.all(AppSpacing.md),
               child: Column(
                 children: [
-                  // Customer info
                   Row(
                     children: [
                       const CircleAvatar(
@@ -205,11 +227,11 @@ class _AgentCurrentJobScreenState extends State<AgentCurrentJobScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            _activeJob['customerName'],
+                            shipping['name'] ?? 'Customer',
                             style: AppTextStyles.titleMedium,
                           ),
                           Text(
-                            _activeJob['customerPhone'],
+                            shipping['phone'] ?? 'N/A',
                             style: AppTextStyles.bodySmall,
                           ),
                         ],
@@ -217,15 +239,13 @@ class _AgentCurrentJobScreenState extends State<AgentCurrentJobScreen> {
                     ],
                   ),
                   const Divider(height: AppSpacing.lg),
-                  // Pickup address
                   _buildAddressRow(
                     Icons.store_outlined,
                     'Pickup',
-                    _activeJob['pickupAddress'],
+                    order['merchant']?['address'] ?? 'Merchant Location',
                     AppColors.warning,
                   ),
                   const SizedBox(height: AppSpacing.sm),
-                  // Route line
                   Padding(
                     padding: const EdgeInsets.only(left: 11),
                     child: Container(
@@ -235,26 +255,24 @@ class _AgentCurrentJobScreenState extends State<AgentCurrentJobScreen> {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.sm),
-                  // Delivery address
                   _buildAddressRow(
                     Icons.location_on_outlined,
                     'Deliver To',
-                    _activeJob['deliveryAddress'],
+                    shipping['address'] ?? 'Delivery Address',
                     AppColors.error,
                   ),
                   const Divider(height: AppSpacing.lg),
-                  // Items & amount
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(
                         child: Text(
-                          _activeJob['items'],
+                          '${(order['items'] as List?)?.length ?? 0} items',
                           style: AppTextStyles.bodySmall,
                         ),
                       ),
                       Text(
-                        _activeJob['amount'],
+                        AppHelpers.formatCurrency((order['total'] ?? 0).toDouble()),
                         style: AppTextStyles.titleMedium.copyWith(
                           color: AppColors.primary,
                         ),
@@ -267,17 +285,12 @@ class _AgentCurrentJobScreenState extends State<AgentCurrentJobScreen> {
                       const Icon(Icons.route_outlined, size: 14, color: AppColors.textSecondary),
                       const SizedBox(width: AppSpacing.xs),
                       Text(
-                        '${_activeJob['distance']} • ${_activeJob['estimatedTime']}',
+                        'Route Active',
                         style: AppTextStyles.bodySmall,
                       ),
                       const Spacer(),
                       GestureDetector(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const NavigationScreen(),
-                          ),
-                        ),
+                        onTap: () => Get.to(() => const NavigationScreen()),
                         child: Row(
                           children: [
                             const Icon(Icons.navigation_outlined,
@@ -357,7 +370,7 @@ class _AgentCurrentJobScreenState extends State<AgentCurrentJobScreen> {
     );
   }
 
-  Widget _buildMapPlaceholder() {
+  Widget _buildMapPlaceholder(Map<String, dynamic> job) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       child: Container(
@@ -369,7 +382,6 @@ class _AgentCurrentJobScreenState extends State<AgentCurrentJobScreen> {
         ),
         child: Stack(
           children: [
-            // Simulated map grid lines
             CustomPaint(
               size: const Size(double.infinity, 200),
               painter: _MapGridPainter(),
@@ -391,7 +403,7 @@ class _AgentCurrentJobScreenState extends State<AgentCurrentJobScreen> {
                             color: AppColors.primary),
                         const SizedBox(width: AppSpacing.sm),
                         Text(
-                          'Route: ${_activeJob['distance']} away',
+                          'Ready for Delivery',
                           style: AppTextStyles.bodyMedium.copyWith(
                             color: AppColors.primary,
                             fontWeight: FontWeight.w600,
@@ -414,17 +426,16 @@ class _AgentCurrentJobScreenState extends State<AgentCurrentJobScreen> {
     );
   }
 
-  Widget _buildActionButtons() {
+  Widget _buildActionButtons(Map<String, dynamic> job) {
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Column(
         children: [
-          // Stage advance button
           if (_stage != DeliveryStage.delivered)
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: _advanceStage,
+                onPressed: () => _advanceStage(job['_id']),
                 icon: const Icon(Icons.check_circle_outline),
                 label: Text(_nextActionLabel),
                 style: ElevatedButton.styleFrom(
@@ -457,12 +468,11 @@ class _AgentCurrentJobScreenState extends State<AgentCurrentJobScreen> {
               ),
             ),
           const SizedBox(height: AppSpacing.sm),
-          // Call customer button
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
               onPressed: () {
-                // TODO: Launch phone dialer with customer number
+                // Future call functionality
               },
               icon: const Icon(Icons.phone_outlined),
               label: const Text('Call Customer'),
@@ -474,6 +484,7 @@ class _AgentCurrentJobScreenState extends State<AgentCurrentJobScreen> {
   }
 
   Widget _buildTodaySummary() {
+    final earnings = controller.earningsSummary.value ?? {};
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.md, 0, AppSpacing.md, AppSpacing.xl,
@@ -496,13 +507,13 @@ class _AgentCurrentJobScreenState extends State<AgentCurrentJobScreen> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '₹485.00',
+                  AppHelpers.formatCurrency((earnings['todayEarnings'] ?? 0).toDouble()),
                   style: AppTextStyles.titleLarge.copyWith(
                     color: AppColors.primary,
                   ),
                 ),
                 Text(
-                  '3 deliveries',
+                  '${earnings['todayDeliveries'] ?? 0} deliveries',
                   style: AppTextStyles.bodySmall,
                 ),
               ],
@@ -547,7 +558,7 @@ class _AgentCurrentJobScreenState extends State<AgentCurrentJobScreen> {
           ),
           const SizedBox(height: AppSpacing.lg),
           ElevatedButton.icon(
-            onPressed: () => setState(() => _isOnline = true),
+            onPressed: () => controller.toggleStatus(),
             icon: const Icon(Icons.power_settings_new),
             label: const Text('Go Online'),
           ),
@@ -571,7 +582,6 @@ class _MapGridPainter extends CustomPainter {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
     }
 
-    // Draw a simple route line
     final routePaint = Paint()
       ..color = AppColors.primary
       ..strokeWidth = 3

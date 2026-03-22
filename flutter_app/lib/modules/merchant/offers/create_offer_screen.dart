@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:greenbasket_app/config/theme.dart';
+import '../../../data/repositories/merchant_repository.dart';
 
 enum OfferType { percentage, fixed, buyXGetY, flashSale }
 
@@ -12,6 +13,7 @@ class CreateOfferScreen extends StatefulWidget {
 }
 
 class _CreateOfferScreenState extends State<CreateOfferScreen> {
+  final _repo = MerchantRepository();
   OfferType _selectedType = OfferType.percentage;
 
   final _titleController = TextEditingController();
@@ -26,15 +28,42 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
   bool _usageLimitEnabled = false;
   DateTime? _startDate;
   DateTime? _endDate;
+  bool _isSubmitting = false;
 
-  final List<String> _selectedProducts = [];
-  final List<Map<String, dynamic>> _mockProducts = [
-    {'name': 'Fresh Tomatoes', 'selected': false},
-    {'name': 'Organic Carrots', 'selected': false},
-    {'name': 'Baby Spinach', 'selected': false},
-    {'name': 'Alphonso Mangoes', 'selected': false},
-    {'name': 'Full Cream Milk', 'selected': false},
-  ];
+  bool _isLoadingProducts = true;
+  List<Map<String, dynamic>> _products = [];
+  final Set<String> _selectedProductIds = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProducts();
+  }
+
+  Future<void> _loadProducts() async {
+    try {
+      final cats = await _repo.getCategories();
+      // getCategories returns category objects; we need actual products
+      // Use getMyProducts instead
+      setState(() => _isLoadingProducts = false);
+    } catch (_) {
+      setState(() => _isLoadingProducts = false);
+    }
+  }
+
+  Future<void> _loadMyProducts() async {
+    try {
+      final products = await _repo.getMyProducts();
+      setState(() {
+        _products = products
+            .map((p) => {'id': p.id, 'name': p.name})
+            .toList();
+        _isLoadingProducts = false;
+      });
+    } catch (_) {
+      setState(() => _isLoadingProducts = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -80,16 +109,61 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
     return '${date.day}/${date.month}/${date.year}';
   }
 
-  void _createOffer() {
-    // TODO: validate and call API to create offer
-    Get.back();
-    Get.snackbar(
-      'Offer Created',
-      'Your offer is now live!',
-      backgroundColor: AppColors.success,
-      colorText: Colors.white,
-      snackPosition: SnackPosition.BOTTOM,
-    );
+  Future<void> _createOffer() async {
+    if (_titleController.text.trim().isEmpty) {
+      Get.snackbar('Validation Error', 'Please enter an offer title',
+          snackPosition: SnackPosition.BOTTOM);
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    try {
+      final payload = <String, dynamic>{
+        'title': _titleController.text.trim(),
+        'type': _selectedType.name,
+        'allProducts': _allProducts,
+        if (!_allProducts && _selectedProductIds.isNotEmpty)
+          'productIds': _selectedProductIds.toList(),
+        if (_startDate != null) 'startDate': _startDate!.toIso8601String(),
+        if (_endDate != null) 'endDate': _endDate!.toIso8601String(),
+        if (_usageLimitEnabled &&
+            _usageLimitController.text.trim().isNotEmpty)
+          'usageLimit': int.tryParse(_usageLimitController.text.trim()),
+      };
+
+      if (_selectedType == OfferType.buyXGetY) {
+        payload['buyQty'] = int.tryParse(_buyQtyController.text) ?? 2;
+        payload['getQty'] = int.tryParse(_getQtyController.text) ?? 1;
+      } else {
+        payload['discount'] =
+            double.tryParse(_discountController.text.trim()) ?? 0;
+      }
+
+      if (_minOrderController.text.trim().isNotEmpty) {
+        payload['minOrder'] =
+            double.tryParse(_minOrderController.text.trim());
+      }
+      if (_selectedType == OfferType.percentage &&
+          _maxCapController.text.trim().isNotEmpty) {
+        payload['maxCap'] =
+            double.tryParse(_maxCapController.text.trim());
+      }
+
+      await _repo.createOffer(payload);
+      Get.back(result: true);
+      Get.snackbar(
+        'Offer Created',
+        'Your offer is now live!',
+        backgroundColor: AppColors.success,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (_) {
+      Get.snackbar('Error', 'Could not create offer. Please try again.',
+          snackPosition: SnackPosition.BOTTOM);
+    } finally {
+      setState(() => _isSubmitting = false);
+    }
   }
 
   @override
@@ -189,8 +263,7 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
                   const Padding(
                     padding:
                         EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                    child: Text('→',
-                        style: TextStyle(fontSize: 20)),
+                    child: Text('→', style: TextStyle(fontSize: 20)),
                   ),
                   Expanded(
                     child: _buildTextField(
@@ -209,10 +282,13 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
                 label: _selectedType == OfferType.percentage
                     ? 'Discount Percentage'
                     : 'Discount Amount (₹)',
-                hint: _selectedType == OfferType.percentage ? '20' : '50',
+                hint:
+                    _selectedType == OfferType.percentage ? '20' : '50',
                 keyboardType: TextInputType.number,
-                suffixText: _selectedType == OfferType.percentage ? '%' : null,
-                prefixText: _selectedType == OfferType.fixed ? '₹ ' : null,
+                suffixText:
+                    _selectedType == OfferType.percentage ? '%' : null,
+                prefixText:
+                    _selectedType == OfferType.fixed ? '₹ ' : null,
               ),
             ],
             const SizedBox(height: AppSpacing.md),
@@ -245,8 +321,7 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
             const SizedBox(height: AppSpacing.lg),
 
             // Applicable products
-            Text('Applicable Products',
-                style: AppTextStyles.titleLarge),
+            Text('Applicable Products', style: AppTextStyles.titleLarge),
             const SizedBox(height: AppSpacing.md),
             Container(
               decoration: BoxDecoration(
@@ -263,25 +338,49 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
                         'Apply offer to your entire catalog',
                         style: AppTextStyles.bodySmall),
                     value: _allProducts,
-                    onChanged: (v) =>
-                        setState(() => _allProducts = v),
+                    onChanged: (v) {
+                      setState(() => _allProducts = v);
+                      if (!v && _products.isEmpty) {
+                        _loadMyProducts();
+                      }
+                    },
                     activeColor: AppColors.primary,
                   ),
                   if (!_allProducts) ...[
                     const Divider(height: 1),
-                    ..._mockProducts.asMap().entries.map((e) {
-                      final i = e.key;
-                      final product = e.value;
-                      return CheckboxListTile(
-                        title: Text(product['name'] as String,
-                            style: AppTextStyles.bodyMedium),
-                        value: product['selected'] as bool,
-                        onChanged: (v) => setState(
-                            () => _mockProducts[i]['selected'] = v),
-                        activeColor: AppColors.primary,
-                        controlAffinity: ListTileControlAffinity.leading,
-                      );
-                    }),
+                    if (_isLoadingProducts)
+                      const Padding(
+                        padding: EdgeInsets.all(AppSpacing.md),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (_products.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        child: Text('No products available.',
+                            style: AppTextStyles.bodyMedium
+                                .copyWith(color: AppColors.textSecondary)),
+                      )
+                    else
+                      ..._products.map((product) {
+                        final id = (product['id'] ?? '').toString();
+                        final name =
+                            (product['name'] ?? 'Product').toString();
+                        return CheckboxListTile(
+                          title: Text(name,
+                              style: AppTextStyles.bodyMedium),
+                          value: _selectedProductIds.contains(id),
+                          onChanged: (v) => setState(() {
+                            if (v == true) {
+                              _selectedProductIds.add(id);
+                            } else {
+                              _selectedProductIds.remove(id);
+                            }
+                          }),
+                          activeColor: AppColors.primary,
+                          controlAffinity:
+                              ListTileControlAffinity.leading,
+                        );
+                      }),
                   ],
                 ],
               ),
@@ -358,8 +457,14 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
           child: SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: _createOffer,
-              child: const Text('Create Offer'),
+              onPressed: _isSubmitting ? null : _createOffer,
+              child: _isSubmitting
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
+                  : const Text('Create Offer'),
             ),
           ),
         ),
@@ -427,8 +532,7 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(AppRadius.md),
           border: Border.all(
-            color:
-                date != null ? AppColors.primary : AppColors.border,
+            color: date != null ? AppColors.primary : AppColors.border,
           ),
         ),
         child: Column(

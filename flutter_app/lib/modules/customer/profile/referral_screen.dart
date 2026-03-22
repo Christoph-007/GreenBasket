@@ -79,7 +79,7 @@ class ReferralScreen extends StatelessWidget {
 
             GBButton(
               label: 'Share Referral Code',
-              onPressed: () {},
+              onPressed: () => Get.snackbar('Share', 'Opening share sheet...'),
               isFullWidth: true,
               leadingIcon: Icons.share_outlined,
             ),
