@@ -124,7 +124,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
   }
 
   Widget _buildKPIs() {
-    return Padding(
+    return Obx(() => Padding(
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Row(
         children: [
@@ -135,7 +135,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
           _kpiCard('Rating', '${controller.rating.value}', Icons.star_outline, Colors.blue.shade50),
         ],
       ),
-    );
+    ));
   }
 
   Widget _kpiCard(String label, String value, IconData icon, Color bgColor) {

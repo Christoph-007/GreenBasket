@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import '../../../data/repositories/merchant_repository.dart';
 
@@ -37,10 +38,10 @@ class FinancialController extends GetxController {
       final txns = results[1] as List<Map<String, dynamic>>;
 
       final data = summary['data'] ?? summary;
-      grossSales.value = (data['grossSales'] ?? 0).toDouble();
-      netEarnings.value = (data['netEarnings'] ?? 0).toDouble();
-      commission.value = (data['commission'] ?? 0).toDouble();
-      pendingPayout.value = (data['pendingPayout'] ?? 0).toDouble();
+      grossSales.value = ((data['grossSales'] ?? data['totalRevenue'] ?? 0) as num).toDouble();
+      netEarnings.value = ((data['netEarnings'] ?? data['netRevenue'] ?? 0) as num).toDouble();
+      commission.value = ((data['commission'] ?? data['platformFee'] ?? 0) as num).toDouble();
+      pendingPayout.value = ((data['pendingPayout'] ?? data['pending'] ?? 0) as num).toDouble();
 
       final rawChart = data['chartValues'] as List<dynamic>? ?? [];
       if (rawChart.isNotEmpty) {
@@ -49,13 +50,14 @@ class FinancialController extends GetxController {
             .reduce((a, b) => a > b ? a : b);
         chartValues.value = maxVal > 0
             ? rawChart.map((v) => (v as num).toDouble() / maxVal).toList()
-            : rawChart.map((v) => 0.0).toList();
+            : rawChart.map((_) => 0.0).toList();
       } else {
         chartValues.value = [];
       }
 
       transactions.assignAll(txns);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[FinancialController] fetchFinancial error: $e');
       grossSales.value = 0;
       netEarnings.value = 0;
       commission.value = 0;

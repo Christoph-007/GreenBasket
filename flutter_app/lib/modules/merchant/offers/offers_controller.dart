@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import '../../../data/repositories/merchant_repository.dart';
 
@@ -26,7 +27,8 @@ class OffersController extends GetxController {
           all.where((o) => o['status'] == 'scheduled'));
       expiredOffers.assignAll(
           all.where((o) => o['status'] == 'expired'));
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[OffersController] fetchOffers error: $e');
       activeOffers.clear();
       scheduledOffers.clear();
       expiredOffers.clear();
@@ -39,7 +41,8 @@ class OffersController extends GetxController {
     try {
       await _repo.toggleOffer(id, active);
       fetchOffers();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[OffersController] toggleOffer error: $e');
       Get.snackbar('Error', 'Could not update offer status');
     }
   }
@@ -50,7 +53,8 @@ class OffersController extends GetxController {
       fetchOffers();
       Get.snackbar('Deleted', 'Offer removed successfully',
           snackPosition: SnackPosition.BOTTOM);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[OffersController] deleteOffer error: $e');
       Get.snackbar('Error', 'Could not delete offer');
     }
   }

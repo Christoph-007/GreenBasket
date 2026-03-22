@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../config/theme.dart';
@@ -39,7 +40,8 @@ class PayoutsController extends GetxController {
       bankLast4.value = data['bankLast4'] ?? '';
 
       payouts.assignAll(results[1] as List<Map<String, dynamic>>);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[PayoutsController] fetchPayouts error: $e');
       availableBalance.value = 0;
       totalPaidOut.value = 0;
       nextPayoutDate.value = '';

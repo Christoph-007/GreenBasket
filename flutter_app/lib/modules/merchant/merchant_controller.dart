@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import '../../data/repositories/merchant_repository.dart';
 import '../../data/models/order_model.dart';
@@ -26,29 +27,31 @@ class MerchantController extends GetxController {
   Future<void> fetchProfile() async {
     try {
       final result = await _repo.getProfile();
-      if (result['success'] == true || result['data'] != null) {
-        final data = result['data'] ?? result;
-        storeName.value =
-            data['storeName'] ?? data['businessName'] ?? data['name'] ?? '';
-        isVerified.value = data['isVerified'] ?? data['verified'] ?? false;
-        isStoreOpen.value = data['isStoreOpen'] ?? data['isOpen'] ?? true;
-      }
-    } catch (_) {}
+      final data = result['data'] ?? result;
+      storeName.value =
+          data['storeName'] ?? data['businessName'] ?? data['name'] ?? '';
+      isVerified.value = data['isVerified'] ?? data['verified'] ?? false;
+      isStoreOpen.value = data['isStoreOpen'] ?? data['isOpen'] ?? true;
+    } catch (e) {
+      debugPrint('[MerchantController] fetchProfile error: $e');
+    }
   }
 
   Future<void> fetchStats() async {
     try {
       isLoading.value = true;
       final stats = await _repo.getDashboardStats();
-      if (stats['success'] == true) {
-        final data = stats['data'];
-        revenue.value = '₹${data['todayRevenue'] ?? 0}';
-        orderCount.value = data['todayOrders'] ?? 0;
-        rating.value = (data['storeRating'] ?? 0.0).toDouble();
-        isStoreOpen.value = data['isStoreOpen'] ?? isStoreOpen.value;
-      }
-    } catch (_) {}
-    finally {
+      // Support both { data: {...} } and flat response shapes
+      final data = stats['data'] ?? stats;
+      revenue.value = '₹${data['todayRevenue'] ?? data['revenue'] ?? 0}';
+      orderCount.value = data['todayOrders'] ?? data['orders'] ?? 0;
+      rating.value =
+          ((data['storeRating'] ?? data['rating'] ?? 0.0) as num).toDouble();
+      isStoreOpen.value =
+          data['isStoreOpen'] ?? data['isOpen'] ?? isStoreOpen.value;
+    } catch (e) {
+      debugPrint('[MerchantController] fetchStats error: $e');
+    } finally {
       isLoading.value = false;
     }
   }
@@ -57,14 +60,18 @@ class MerchantController extends GetxController {
     try {
       final orders = await _repo.getMerchantOrders(status: 'pending');
       newOrders.assignAll(orders);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[MerchantController] fetchNewOrders error: $e');
+    }
   }
 
   Future<void> toggleStoreStatus(bool? val) async {
     try {
       await _repo.toggleStoreStatus();
       isStoreOpen.toggle();
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[MerchantController] toggleStoreStatus error: $e');
+    }
   }
 
   Future<void> acceptOrder(String orderId) async {
@@ -72,7 +79,10 @@ class MerchantController extends GetxController {
       await _repo.updateOrderStatus(orderId, 'confirmed');
       fetchNewOrders();
       Get.snackbar('Success', 'Order accepted successfully');
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[MerchantController] acceptOrder error: $e');
+      Get.snackbar('Error', 'Failed to accept order');
+    }
   }
 
   Future<void> declineOrder(String orderId) async {
@@ -80,6 +90,9 @@ class MerchantController extends GetxController {
       await _repo.updateOrderStatus(orderId, 'cancelled');
       fetchNewOrders();
       Get.snackbar('Order Declined', 'Order has been cancelled');
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[MerchantController] declineOrder error: $e');
+      Get.snackbar('Error', 'Failed to decline order');
+    }
   }
 }

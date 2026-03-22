@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import '../../../data/models/product_model.dart';
 import '../../../data/repositories/merchant_repository.dart';
@@ -18,8 +19,9 @@ class MerchantProductController extends GetxController {
       isLoading.value = true;
       final items = await _repo.getMyProducts();
       products.assignAll(items);
-    } catch (_) {}
-    finally {
+    } catch (e) {
+      debugPrint('[MerchantProductController] fetchProducts error: $e');
+    } finally {
       isLoading.value = false;
     }
   }
@@ -29,6 +31,9 @@ class MerchantProductController extends GetxController {
       await _repo.deleteProduct(id);
       fetchProducts();
       Get.snackbar('Success', 'Product deleted successfully');
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[MerchantProductController] deleteProduct error: $e');
+      Get.snackbar('Error', 'Failed to delete product');
+    }
   }
 }
