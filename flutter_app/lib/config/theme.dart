@@ -84,6 +84,14 @@ class AppTextStyles {
     height: 1.3,
   );
 
+  static const TextStyle displaySmall = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 22,
+    fontWeight: FontWeight.w700,
+    color: AppColors.textPrimary,
+    height: 1.3,
+  );
+
   static const TextStyle headlineLarge = TextStyle(
     fontFamily: fontFamily,
     fontSize: 20,

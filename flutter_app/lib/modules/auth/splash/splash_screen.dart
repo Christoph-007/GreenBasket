@@ -52,7 +52,7 @@ class _SplashScreenState extends State<SplashScreen>
           Get.offAllNamed(Routes.adminDashboard);
           break;
         case AppConstants.roleAgent:
-          Get.offAllNamed(Routes.agentCurrentJob);
+          Get.offAllNamed(Routes.agentDashboard);
           break;
         default:
           Get.offAllNamed(Routes.login);

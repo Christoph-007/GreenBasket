@@ -32,8 +32,9 @@ class AuthController extends GetxController {
       errorMessage.value = '';
       final result = await _repo.login(email: email, password: password);
       if (result['success'] == true) {
-        _storage.saveToken(result['data']['token']);
-        final u = UserModel.fromJson(result['data']['user']);
+        // Corrected: Backend sends token and user at top level
+        _storage.saveToken(result['token'] ?? result['data']?['token']);
+        final u = UserModel.fromJson(result['user'] ?? result['data']?['user'] ?? {});
         _storage.saveUser(u);
         _storage.saveRole(u.role);
         user.value = u;
@@ -88,8 +89,9 @@ class AuthController extends GetxController {
       errorMessage.value = '';
       final result = await _repo.verifyOtp(email: email, otp: otp);
       if (result['success'] == true) {
-        _storage.saveToken(result['data']['token']);
-        final u = UserModel.fromJson(result['data']['user']);
+        // Corrected: Backend sends token and user at top level
+        _storage.saveToken(result['token'] ?? result['data']?['token']);
+        final u = UserModel.fromJson(result['user'] ?? result['data']?['user'] ?? {});
         _storage.saveUser(u);
         _storage.saveRole(u.role);
         user.value = u;

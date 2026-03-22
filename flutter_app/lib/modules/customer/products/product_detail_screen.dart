@@ -7,7 +7,6 @@ import '../../../data/models/product_model.dart';
 import '../../../data/repositories/product_repository.dart';
 import '../../../widgets/common/gb_button.dart';
 import '../../../widgets/common/gb_loader.dart';
-import '../../../widgets/common/gb_app_bar.dart';
 import '../../../widgets/common/empty_state.dart';
 import '../cart/cart_controller.dart';
 

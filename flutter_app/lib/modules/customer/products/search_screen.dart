@@ -39,8 +39,6 @@ class _SearchScreenState extends State<SearchScreen> {
   final _ctrl = Get.put(SearchController2());
   final _cartCtrl = CartController();
   final _textCtrl = TextEditingController();
-  final _debounce = Duration.zero;
-
   @override
   void dispose() {
     _textCtrl.dispose();
