@@ -154,8 +154,9 @@ class PayoutsScreen extends StatelessWidget {
                   Expanded(
                     child: _summaryItem(
                       'Total Paid Out',
-                      Obx(() =>
-                          '₹${controller.totalPaidOut.value.toStringAsFixed(0)}'),
+                      Obx(() => Text(
+                          '₹${controller.totalPaidOut.value.toStringAsFixed(0)}',
+                          style: AppTextStyles.titleLarge.copyWith(color: AppColors.success))),
                       AppColors.success,
                       Icons.arrow_circle_up_outlined,
                     ),
@@ -164,7 +165,8 @@ class PayoutsScreen extends StatelessWidget {
                   Expanded(
                     child: _summaryItem(
                       'Total Payouts',
-                      Obx(() => '${controller.payouts.length}'),
+                      Obx(() => Text('${controller.payouts.length}',
+                          style: AppTextStyles.titleLarge.copyWith(color: AppColors.primary))),
                       AppColors.primary,
                       Icons.receipt_outlined,
                     ),

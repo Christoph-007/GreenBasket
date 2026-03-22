@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:greenbasket_app/config/theme.dart';
+import '../admin_controller.dart';
 import 'user_detail_screen.dart';
 import '../widgets/admin_drawer.dart';
 
@@ -28,7 +29,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
             child: Obx(() {
               final filteredUsers = controller.users.where((u) {
                 final user = u as Map<String, dynamic>;
-                final status = (user['isBlocked'] ?? false) ? 'Blocked' : 'Active';
+                final isBlocked = user['isBlocked'] ?? false;
+                final status = isBlocked ? 'Blocked' : 'Active';
                 bool matchesFilter = _selectedFilter == 'All' || status == _selectedFilter;
                 bool matchesSearch = user['name'].toString().toLowerCase().contains(_searchQuery.toLowerCase()) || 
                                      user['email'].toString().toLowerCase().contains(_searchQuery.toLowerCase());
@@ -189,7 +191,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => Get.to(() => const UserDetailScreen()),
+        onTap: () => Get.to(() => UserDetailScreen(user: user)),
         borderRadius: BorderRadius.circular(20),
         child: Container(
           padding: const EdgeInsets.all(16),
@@ -205,7 +207,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                 width: 44,
                 decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(22)),
                 alignment: Alignment.center,
-                child: Text(name[0],
+                child: Text(name.isNotEmpty ? name[0] : 'U',
                     style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 18)),
               ),
               const SizedBox(width: 12),
@@ -223,7 +225,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                 icon: Icon(Icons.more_vert, color: AppColors.textSecondary),
                 itemBuilder: (context) => [
                   PopupMenuItem(
-                    onTap: () => controller.toggleUserBlock(user['_id']),
+                    onTap: () => controller.toggleUserBlock(user['_id'] ?? user['id']),
                     child: Text(isBlocked ? 'Unblock User' : 'Block User'),
                   ),
                 ],
@@ -234,6 +236,4 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
       ),
     );
   }
-}
-
 }

@@ -14,6 +14,7 @@ class OrderModel {
   final DateTime? estimatedDelivery;
   final String? deliveryAgentName;
   final String? deliveryAgentPhone;
+  final String? notes;
 
   OrderModel({
     required this.id,
@@ -31,6 +32,7 @@ class OrderModel {
     this.estimatedDelivery,
     this.deliveryAgentName,
     this.deliveryAgentPhone,
+    this.notes,
   });
 
   factory OrderModel.fromJson(Map<String, dynamic> json) {
@@ -54,6 +56,7 @@ class OrderModel {
           : null,
       deliveryAgentName: json['deliveryAgent']?['name'],
       deliveryAgentPhone: json['deliveryAgent']?['phone'],
+      notes: json['notes'],
     );
   }
 

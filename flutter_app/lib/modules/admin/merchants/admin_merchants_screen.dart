@@ -4,6 +4,7 @@ import 'package:greenbasket_app/config/theme.dart';
 import 'verify_merchant_screen.dart';
 import 'merchant_analytics_screen.dart';
 import '../widgets/admin_drawer.dart';
+import '../admin_controller.dart';
 
 class AdminMerchantsScreen extends StatefulWidget {
   const AdminMerchantsScreen({super.key});
@@ -31,7 +32,7 @@ class _AdminMerchantsScreenState extends State<AdminMerchantsScreen> {
                 final merchant = m as Map<String, dynamic>;
                 String status = merchant['status'] ?? 'Pending';
                 bool matchesFilter = _selectedFilter == 'All' || status == _selectedFilter;
-                bool matchesSearch = merchant['name'].toString().toLowerCase().contains(_searchQuery.toLowerCase()) || 
+                bool matchesSearch = merchant['businessName'].toString().toLowerCase().contains(_searchQuery.toLowerCase()) || 
                                      merchant['email'].toString().toLowerCase().contains(_searchQuery.toLowerCase());
                 return matchesFilter && matchesSearch;
               }).toList();
@@ -186,7 +187,7 @@ class _AdminMerchantsScreenState extends State<AdminMerchantsScreen> {
   }
 
   Widget _buildMerchantCard(Map<String, dynamic> merchant) {
-    final name = merchant['name'] ?? 'Unknown';
+    final businessName = merchant['businessName'] ?? 'Unknown';
     final email = merchant['email'] ?? 'No email';
     final status = merchant['status'] ?? 'Pending';
     
@@ -212,7 +213,7 @@ class _AdminMerchantsScreenState extends State<AdminMerchantsScreen> {
       child: InkWell(
         onTap: () {
           if (status == 'Pending') {
-            Get.to(() => const VerifyMerchantScreen());
+            Get.to(() => VerifyMerchantScreen(merchant: merchant));
           } else {
             Get.to(() => const MerchantAnalyticsScreen());
           }
@@ -232,7 +233,7 @@ class _AdminMerchantsScreenState extends State<AdminMerchantsScreen> {
                 width: 44,
                 decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(14)),
                 alignment: Alignment.center,
-                child: Text(name[0],
+                child: Text(businessName.isNotEmpty ? businessName[0] : 'M',
                     style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 18)),
               ),
               const SizedBox(width: 12),
@@ -240,7 +241,7 @@ class _AdminMerchantsScreenState extends State<AdminMerchantsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                    Text(businessName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                     const SizedBox(height: 2),
                     Text(email, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
                   ],
@@ -258,6 +259,4 @@ class _AdminMerchantsScreenState extends State<AdminMerchantsScreen> {
       ),
     );
   }
-}
-
 }

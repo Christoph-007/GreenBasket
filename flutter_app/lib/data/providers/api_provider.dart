@@ -55,13 +55,18 @@ class ApiProvider {
   }
 
   Future<Response> uploadFile(
-    String path,
-    String filePath, {
+    String path, {
+    required String filePath,
     String fieldName = 'file',
+    Map<String, dynamic>? extraFields,
   }) async {
-    final formData = FormData.fromMap({
+    final Map<String, dynamic> data = {
       fieldName: await MultipartFile.fromFile(filePath),
-    });
+    };
+    if (extraFields != null) {
+      data.addAll(extraFields);
+    }
+    final formData = FormData.fromMap(data);
     return _dio.post(path, data: formData);
   }
 }

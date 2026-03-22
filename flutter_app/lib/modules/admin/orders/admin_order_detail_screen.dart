@@ -150,7 +150,8 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
 
   Widget _buildTimeline() {
     final status = _order['status']?.toString().toLowerCase() ?? '';
-    int currentIndex = 0;
+    int currentIndex = -1;
+    if (status == 'placed') currentIndex = 0;
     if (status == 'confirmed') currentIndex = 1;
     if (status == 'preparing') currentIndex = 2;
     if (status == 'out for delivery' || status == 'in transit') currentIndex = 3;
@@ -241,7 +242,7 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SizedBox(
-                        width: 80,
+                        width: 100,
                         child: Text(row['label']!, style: AppTextStyles.bodySmall),
                       ),
                       Expanded(child: Text(row['value']!, style: AppTextStyles.bodyMedium)),
@@ -271,12 +272,13 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
 
   Widget _buildMerchantCard() {
     final m = _order['merchant'] as Map<String, dynamic>? ?? {};
+    final merchantName = m['businessName']?.toString() ?? m['name']?.toString() ?? 'N/A';
     return _buildInfoCard(
       title: 'Merchant',
       icon: Icons.store_outlined,
       iconColor: AppColors.primary,
       rows: [
-        {'label': 'Store', 'value': m['name']?.toString() ?? 'N/A'},
+        {'label': 'Store', 'value': merchantName},
         {'label': 'Phone', 'value': m['phone']?.toString() ?? 'N/A'},
       ],
     );
@@ -432,7 +434,8 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
               final i = e.key;
               final log = e.value as Map<String, dynamic>;
               final isLast = i == logs.length - 1;
-              final time = log['createdAt']?.toString().split('T')[1].substring(0, 5) ?? 'N/A';
+              final timeString = log['createdAt']?.toString() ?? '';
+              final time = timeString.contains('T') ? timeString.split('T')[1].substring(0, 5) : 'N/A';
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -441,7 +444,7 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
                       Container(
                         width: 10,
                         height: 10,
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                           color: AppColors.primary,
                           shape: BoxShape.circle,
                         ),

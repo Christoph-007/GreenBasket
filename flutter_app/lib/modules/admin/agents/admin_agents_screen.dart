@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:greenbasket_app/config/theme.dart';
 import 'package:greenbasket_app/modules/admin/agents/agent_detail_screen.dart';
+import '../admin_controller.dart';
 
 class AdminAgentsScreen extends StatefulWidget {
   const AdminAgentsScreen({super.key});
@@ -142,7 +143,7 @@ class _AdminAgentsScreenState extends State<AdminAgentsScreen>
     return Card(
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: InkWell(
-        onTap: () => Get.to(() => const AgentDetailScreen()),
+        onTap: () => Get.to(() => AgentDetailScreen(agent: agent)),
         borderRadius: BorderRadius.circular(AppRadius.md),
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.md),
@@ -154,7 +155,7 @@ class _AdminAgentsScreenState extends State<AdminAgentsScreen>
                     radius: 28,
                     backgroundColor: AppColors.primaryContainer,
                     child: Text(
-                      name.substring(0, name.length > 2 ? 2 : name.length).toUpperCase(),
+                      name.isNotEmpty ? name.substring(0, name.length > 2 ? 2 : name.length).toUpperCase() : 'A',
                       style: AppTextStyles.titleMedium.copyWith(color: AppColors.primary),
                     ),
                   ),
@@ -214,11 +215,11 @@ class _AdminAgentsScreenState extends State<AdminAgentsScreen>
                 itemBuilder: (context) => [
                   if (status == 'Pending')
                     PopupMenuItem(
-                      onTap: () => controller.verifyAgent(agent['_id'], true),
+                      onTap: () => controller.verifyAgent(agent['_id'] ?? agent['id'], true),
                       child: const Text('Approve Agent'),
                     ),
                   PopupMenuItem(
-                    onTap: () => controller.verifyAgent(agent['_id'], false),
+                    onTap: () => controller.verifyAgent(agent['_id'] ?? agent['id'], false),
                     child: const Text('Suspend Agent', style: TextStyle(color: Colors.red)),
                   ),
                 ],

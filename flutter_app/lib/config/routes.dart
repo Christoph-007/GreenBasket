@@ -96,6 +96,7 @@ class Routes {
   static const String adminSettings = '/admin/settings';
   static const String adminNotifications = '/admin/notifications';
   static const String adminFinance = '/admin/finance';
+  static const String adminProductDetail = '/admin/product-detail';
 
   // Delivery Agent shell
   static const String agentDashboard = '/agent/dashboard';

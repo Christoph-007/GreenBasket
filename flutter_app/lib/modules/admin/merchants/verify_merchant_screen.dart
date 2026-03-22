@@ -1,30 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:greenbasket_app/config/theme.dart';
+import '../admin_controller.dart';
 
 class VerifyMerchantScreen extends StatefulWidget {
-  const VerifyMerchantScreen({super.key});
+  final Map<String, dynamic>? merchant;
+  const VerifyMerchantScreen({super.key, this.merchant});
 
   @override
   State<VerifyMerchantScreen> createState() => _VerifyMerchantScreenState();
 }
 
 class _VerifyMerchantScreenState extends State<VerifyMerchantScreen> {
+  final controller = Get.find<AdminController>();
   final _notesController = TextEditingController();
   bool _fssaiVerified = false;
   bool _gstVerified = false;
   bool _licenseVerified = false;
   String? _viewingDoc;
 
-  // Mock merchant data — replace with API call
-  final _merchant = {
-    'businessName': 'Fresh Farms Organics',
-    'ownerName': 'Rahul Gupta',
-    'email': 'rahul@freshfarms.in',
-    'phone': '+91 87654 32109',
-    'address': '42 MG Road, Bangalore, Karnataka 560001',
-    'registeredOn': '15 Mar 2024',
-  };
+  late Map<String, dynamic> _merchant;
+
+  @override
+  void initState() {
+    super.initState();
+    _merchant = widget.merchant ?? Get.arguments?['merchant'] ?? {};
+  }
 
   void _showDocumentViewer(String docName) {
     setState(() => _viewingDoc = docName);
@@ -78,7 +79,6 @@ class _VerifyMerchantScreenState extends State<VerifyMerchantScreen> {
                     const SizedBox(height: AppSpacing.md),
                     Text('Document Preview', style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textSecondary)),
                     const SizedBox(height: AppSpacing.sm),
-                    // TODO: Load actual document from API/storage
                     Text('Tap to open full document', style: AppTextStyles.bodySmall),
                   ],
                 ),
@@ -101,8 +101,8 @@ class _VerifyMerchantScreenState extends State<VerifyMerchantScreen> {
         ),
         content: Text(
           isApprove
-              ? 'Are you sure you want to approve Fresh Farms Organics? They will be able to list products.'
-              : 'Are you sure you want to reject Fresh Farms Organics? Please provide a rejection reason.',
+              ? 'Are you sure you want to approve ${_merchant['businessName']}? They will be able to list products.'
+              : 'Are you sure you want to reject ${_merchant['businessName']}? Please provide a rejection reason.',
           style: AppTextStyles.bodyMedium,
         ),
         actions: [
@@ -111,16 +111,23 @@ class _VerifyMerchantScreenState extends State<VerifyMerchantScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: isApprove ? AppColors.success : AppColors.error,
             ),
-            onPressed: () {
-              // TODO: Call API to approve/reject merchant
-              Navigator.pop(ctx);
-              Get.back();
-              Get.snackbar(
-                isApprove ? 'Merchant Approved' : 'Merchant Rejected',
-                'Fresh Farms Organics has been ${isApprove ? 'approved' : 'rejected'}.',
-                backgroundColor: isApprove ? AppColors.success : AppColors.error,
-                colorText: Colors.white,
-              );
+            onPressed: () async {
+              try {
+                await controller.verifyMerchant(
+                  _merchant['_id'] ?? _merchant['id'], 
+                  isApprove
+                );
+                Navigator.pop(ctx);
+                Get.back();
+                Get.snackbar(
+                  isApprove ? 'Merchant Approved' : 'Merchant Rejected',
+                  '${_merchant['businessName']} has been ${isApprove ? 'approved' : 'rejected'}.',
+                  backgroundColor: isApprove ? AppColors.success : AppColors.error,
+                  colorText: Colors.white,
+                );
+              } catch (e) {
+                Get.snackbar('Error', 'Failed to update merchant status');
+              }
             },
             child: Text(isApprove ? 'Approve' : 'Reject'),
           ),
@@ -191,7 +198,7 @@ class _VerifyMerchantScreenState extends State<VerifyMerchantScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(_merchant['businessName']!, style: AppTextStyles.titleLarge),
+                    Text(_merchant['businessName']?.toString() ?? 'Unknown Business', style: AppTextStyles.titleLarge),
                       Container(
                         margin: const EdgeInsets.only(top: 4),
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -210,11 +217,10 @@ class _VerifyMerchantScreenState extends State<VerifyMerchantScreen> {
               ],
             ),
             const Divider(height: AppSpacing.lg),
-            _infoRow('Owner', _merchant['ownerName']!),
-            _infoRow('Email', _merchant['email']!),
-            _infoRow('Phone', _merchant['phone']!),
-            _infoRow('Address', _merchant['address']!),
-            _infoRow('Registered On', _merchant['registeredOn']!),
+            _infoRow('Email', _merchant['email']?.toString() ?? 'N/A'),
+            _infoRow('Phone', _merchant['phone']?.toString() ?? 'N/A'),
+            _infoRow('Address', _merchant['address']?.toString() ?? 'N/A'),
+            _infoRow('Registered On', _merchant['createdAt']?.toString().split('T')[0] ?? 'N/A'),
           ],
         ),
       ),
@@ -248,11 +254,11 @@ class _VerifyMerchantScreenState extends State<VerifyMerchantScreen> {
           children: [
             const Text('Documents', style: AppTextStyles.titleLarge),
             const SizedBox(height: AppSpacing.md),
-            _documentRow('FSSAI License', 'FSSAI-2024-38291', true),
+            _documentRow('FSSAI License', _merchant['fssaiNumber'] ?? 'Not provided', _merchant['fssaiNumber'] != null),
             const Divider(),
-            _documentRow('GST Certificate', 'GST27ABCDE1234F1Z5', true),
+            _documentRow('GST Certificate', _merchant['gstNumber'] ?? 'Not provided', _merchant['gstNumber'] != null),
             const Divider(),
-            _documentRow('Trade License', 'TL/BLR/2024/5678', false),
+            _documentRow('Trade License', 'Not provided', false),
           ],
         ),
       ),

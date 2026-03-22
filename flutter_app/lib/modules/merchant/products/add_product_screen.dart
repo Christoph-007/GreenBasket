@@ -85,10 +85,14 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   void _nextStep() {
     if (_currentStep == 0) {
-      if (_nameController.text.isEmpty) {
-        Get.snackbar('Required', 'Please enter a product name');
-        return;
-      }
+        if (_nameController.text.isEmpty) {
+          Get.snackbar('Required', 'Please enter a product name');
+          return;
+        }
+        if (_selectedCategoryId == null) {
+          Get.snackbar('Required', 'Please select a category');
+          return;
+        }
     }
     if (_currentStep == 1) {
       if (_priceController.text.isEmpty || _stockController.text.isEmpty) {
@@ -133,9 +137,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
       );
-    } catch (_) {
-      Get.snackbar('Error', 'Failed to add product. Please try again.',
-          snackPosition: SnackPosition.BOTTOM);
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to add product: ${e.toString().split(':').last.trim()}',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.withOpacity(0.1),
+          colorText: Colors.red);
     } finally {
       setState(() => _isSubmitting = false);
     }

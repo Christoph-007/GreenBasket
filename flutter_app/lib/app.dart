@@ -92,6 +92,7 @@ import 'modules/admin/finance/commission_settings_screen.dart';
 import 'modules/admin/operations/bulk_ops_screen.dart';
 import 'modules/admin/settings/admin_settings_screen.dart';
 import 'modules/admin/notifications/admin_notifications_screen.dart';
+import 'modules/admin/products/admin_product_detail_screen.dart';
 
 // Delivery Agent shell
 import 'modules/delivery_agent/agent_shell.dart';
@@ -206,6 +207,7 @@ class App extends StatelessWidget {
         GetPage(name: Routes.adminBulkOps, page: () => const BulkOpsScreen()),
         GetPage(name: Routes.adminSettings, page: () => const AdminSettingsScreen()),
         GetPage(name: Routes.adminNotifications, page: () => const AdminNotificationsScreen()),
+        GetPage(name: Routes.adminProductDetail, page: () => const AdminProductDetailScreen()),
 
         // ─── Delivery Agent Shell ────────────────────────────────────────
         GetPage(name: Routes.agentDashboard, page: () => const AgentShell()),

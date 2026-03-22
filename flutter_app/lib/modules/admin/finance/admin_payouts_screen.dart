@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:greenbasket_app/config/theme.dart';
+import '../admin_controller.dart';
 
 class AdminPayoutsScreen extends StatefulWidget {
   const AdminPayoutsScreen({super.key});
@@ -135,26 +136,26 @@ class _AdminPayoutsScreenState extends State<AdminPayoutsScreen>
           ],
         ),
       ),
-      body: Obx(() => Column(
+      body: Column(
         children: [
-          _buildPendingBanner(),
+          Obx(() => _buildPendingBanner()),
           Expanded(
-            child: TabBarView(
+            child: Obx(() => TabBarView(
               controller: _tabController,
               children: [0, 1, 2].map((tab) {
                 final payouts = _payoutsForTab(tab);
                 return payouts.isEmpty
-                    ? Center(child: Text('No payouts in this category.'))
+                    ? const Center(child: Text('No payouts in this category.'))
                     : ListView.builder(
                         padding: const EdgeInsets.all(AppSpacing.md),
                         itemCount: payouts.length,
                         itemBuilder: (_, i) => _buildPayoutCard(payouts[i]),
                       );
               }).toList(),
-            ),
+            )),
           ),
         ],
-      )),
+      ),
     );
   }
 

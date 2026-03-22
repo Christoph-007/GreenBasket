@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:greenbasket_app/config/theme.dart';
+import 'admin_product_detail_screen.dart';
+import '../admin_controller.dart';
 
 class AdminProductsScreen extends StatefulWidget {
   const AdminProductsScreen({super.key});
@@ -11,10 +13,10 @@ class AdminProductsScreen extends StatefulWidget {
 
 class _AdminProductsScreenState extends State<AdminProductsScreen> {
   final _searchController = TextEditingController();
-  final _selectedIds = <String>{};
-  bool _selectionMode = false;
-  String _searchQuery = '';
-
+  final RxSet<String> _selectedIds = <String>{}.obs;
+  final RxBool _selectionMode = false.obs;
+  final RxString _searchQuery = ''.obs;
+  final controller = Get.find<AdminController>();
 
   Color _statusColor(String status) {
     switch (status) {
@@ -25,15 +27,6 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
       default:
         return AppColors.error;
     }
-  }
-
-  List<Map<String, dynamic>> get _filteredProducts {
-    return _products
-        .where((p) =>
-            (p['name'] as String).toLowerCase().contains(_searchQuery.toLowerCase()) ||
-            (p['merchant'] as String).toLowerCase().contains(_searchQuery.toLowerCase()))
-        .toList()
-        .cast<Map<String, dynamic>>();
   }
 
   void _showFilterSheet() {
@@ -125,7 +118,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('${_selectedIds.length} product(s) selected', style: AppTextStyles.titleMedium),
+            Obx(() => Text('${_selectedIds.length} product(s) selected', style: AppTextStyles.titleMedium)),
             const SizedBox(height: AppSpacing.md),
             _bulkAction(Icons.check_circle_outline, 'Activate Selected', AppColors.success),
             _bulkAction(Icons.pause_circle_outline, 'Suspend Selected', AppColors.warning),
@@ -142,12 +135,9 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
       leading: Icon(icon, color: color),
       title: Text(label, style: AppTextStyles.bodyMedium.copyWith(color: color)),
       onTap: () {
-        // TODO: Call API to bulk update status
         Navigator.pop(context);
-        setState(() {
-          _selectedIds.clear();
-          _selectionMode = false;
-        });
+        _selectedIds.clear();
+        _selectionMode.value = false;
         Get.snackbar('Done', '$label applied.', backgroundColor: color, colorText: Colors.white);
       },
     );
@@ -159,40 +149,35 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     super.dispose();
   }
 
-  final controller = Get.find<AdminController>();
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: _selectionMode
-            ? Obx(() => Text('${_selectedIds.length} Selected'))
-            : const Text('Products Management'),
+        title: Obx(() => _selectionMode.value
+            ? Text('${_selectedIds.length} Selected')
+            : const Text('Products Management')),
         leading: IconButton(
-          icon: Icon(_selectionMode ? Icons.close : Icons.arrow_back_ios_new, size: 18),
+          icon: Obx(() => Icon(_selectionMode.value ? Icons.close : Icons.arrow_back_ios_new, size: 18)),
           onPressed: () {
-            if (_selectionMode) {
-              setState(() {
-                _selectionMode = false;
-                _selectedIds.clear();
-              });
+            if (_selectionMode.value) {
+              _selectionMode.value = false;
+              _selectedIds.clear();
             } else {
               Get.back();
             }
           },
         ),
         actions: [
-          if (_selectionMode)
-            TextButton(
-              onPressed: _selectedIds.isNotEmpty ? _showBulkActionsSheet : null,
-              child: const Text('Actions'),
-            )
-          else
-            IconButton(
-              icon: const Icon(Icons.filter_list),
-              onPressed: _showFilterSheet,
-            ),
+          Obx(() => _selectionMode.value
+            ? TextButton(
+                onPressed: _selectedIds.isNotEmpty ? _showBulkActionsSheet : null,
+                child: const Text('Actions'),
+              )
+            : IconButton(
+                icon: const Icon(Icons.filter_list),
+                onPressed: _showFilterSheet,
+              )),
         ],
       ),
       body: Column(
@@ -204,7 +189,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                 Expanded(
                   child: TextField(
                     controller: _searchController,
-                    onChanged: (v) => setState(() => _searchQuery = v),
+                    onChanged: (v) => _searchQuery.value = v,
                     decoration: const InputDecoration(
                       hintText: 'Search products or merchants...',
                       prefixIcon: Icon(Icons.search, color: AppColors.textHint),
@@ -212,28 +197,28 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
-                IconButton(
+                Obx(() => IconButton(
                   icon: Icon(
-                    _selectionMode ? Icons.check_box : Icons.check_box_outline_blank,
+                    _selectionMode.value ? Icons.check_box : Icons.check_box_outline_blank,
                     color: AppColors.primary,
                   ),
-                  onPressed: () => setState(() {
-                    _selectionMode = !_selectionMode;
+                  onPressed: () {
+                    _selectionMode.value = !_selectionMode.value;
                     _selectedIds.clear();
-                  }),
+                  },
                   tooltip: 'Select multiple',
-                ),
+                )),
               ],
             ),
           ),
           Expanded(
             child: Obx(() {
-              final filteredProducts = controller.products.where((p) {
-                final product = p as Map<String, dynamic>;
-                final searchMatch = (product['name'] as String).toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                                    (product['merchant']?['name']?.toString() ?? '').toLowerCase().contains(_searchQuery.toLowerCase());
-                // TODO: Add category and status filters from _showFilterSheet state
-                return searchMatch;
+              final List<Map<String, dynamic>> products = controller.products.cast<Map<String, dynamic>>();
+              final filteredProducts = products.where((product) {
+                final String name = (product['name'] as String? ?? '').toLowerCase();
+                final String mName = (product['merchant']?['businessName']?.toString() ?? '').toLowerCase();
+                final String query = _searchQuery.value.toLowerCase();
+                return name.contains(query) || mName.contains(query);
               }).toList();
 
               if (filteredProducts.isEmpty) {
@@ -243,7 +228,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
               return ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                 itemCount: filteredProducts.length,
-                itemBuilder: (_, i) => _buildProductCard(filteredProducts[i] as Map<String, dynamic>),
+                itemBuilder: (_, i) => _buildProductCard(filteredProducts[i]),
               );
             }),
           ),
@@ -257,53 +242,48 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     final isSelected = _selectedIds.contains(id);
     final status = product['status'] ?? 'Active';
     final stock = product['stock'] ?? 0;
-    final merchantName = product['merchant']?['name']?.toString() ?? 'Unknown Merchant';
+    final merchantName = product['merchant']?['businessName']?.toString() ?? product['merchant']?['name']?.toString() ?? 'Unknown Merchant';
     final price = product['price']?.toString() ?? '0';
 
     return Card(
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: InkWell(
         onTap: () {
-          if (_selectionMode) {
-            setState(() {
-              if (isSelected) {
-                _selectedIds.remove(id);
-              } else {
-                _selectedIds.add(id);
-              }
-            });
+          if (_selectionMode.value) {
+            if (isSelected) {
+              _selectedIds.remove(id);
+            } else {
+              _selectedIds.add(id);
+            }
           } else {
-            // TODO: Navigate to product detail screen
+            Get.to(() => AdminProductDetailScreen(product: product));
           }
         },
         onLongPress: () {
-          setState(() {
-            _selectionMode = true;
-            _selectedIds.add(id);
-          });
+          _selectionMode.value = true;
+          _selectedIds.add(id);
         },
         borderRadius: BorderRadius.circular(AppRadius.md),
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.sm),
           child: Row(
             children: [
-              if (_selectionMode)
-                Padding(
-                  padding: const EdgeInsets.only(right: AppSpacing.sm),
-                  child: Checkbox(
-                    value: isSelected,
-                    onChanged: (_) {
-                      setState(() {
+              Obx(() => _selectionMode.value
+                ? Padding(
+                    padding: const EdgeInsets.only(right: AppSpacing.sm),
+                    child: Checkbox(
+                      value: isSelected,
+                      onChanged: (_) {
                         if (isSelected) {
                           _selectedIds.remove(id);
                         } else {
                           _selectedIds.add(id);
                         }
-                      });
-                    },
-                    activeColor: AppColors.primary,
-                  ),
-                ),
+                      },
+                      activeColor: AppColors.primary,
+                    ),
+                  )
+                : const SizedBox.shrink()),
               Container(
                 width: 60,
                 height: 60,
@@ -318,7 +298,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(product['name'] as String, style: AppTextStyles.labelLarge),
+                    Text(product['name'] as String? ?? 'Unnamed Product', style: AppTextStyles.labelLarge),
                     Text(merchantName, style: AppTextStyles.bodySmall),
                     const SizedBox(height: 4),
                     Row(

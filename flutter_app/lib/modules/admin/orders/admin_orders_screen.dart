@@ -197,7 +197,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
       color: Colors.transparent,
       child: InkWell(
         onTap: () {
-          Get.to(() => const AdminOrderDetailScreen());
+          Get.to(() => AdminOrderDetailScreen(orderId: order['_id'] ?? order['id'] ?? order['orderNumber']));
         },
         borderRadius: BorderRadius.circular(20),
         child: Container(

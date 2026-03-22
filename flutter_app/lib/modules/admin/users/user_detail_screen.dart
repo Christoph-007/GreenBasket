@@ -1,35 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:greenbasket_app/config/theme.dart';
+import '../admin_controller.dart';
 
 class UserDetailScreen extends StatefulWidget {
-  const UserDetailScreen({super.key});
+  final Map<String, dynamic>? user;
+  const UserDetailScreen({super.key, this.user});
 
   @override
   State<UserDetailScreen> createState() => _UserDetailScreenState();
 }
 
 class _UserDetailScreenState extends State<UserDetailScreen> {
-  bool _isBlocked = false;
+  final controller = Get.find<AdminController>();
+  late Map<String, dynamic> _user;
+  late bool _isBlocked;
 
-  // Mock user data — replace with API call
-  final _user = {
-    'name': 'Priya Sharma',
-    'email': 'priya.sharma@email.com',
-    'phone': '+91 98765 43210',
-    'joinDate': '12 Jan 2024',
-    'role': 'Customer',
-    'totalOrders': '24',
-    'totalSpent': '₹8,450',
-    'loyaltyPoints': '1,240',
-    'walletBalance': '₹320',
+  @override
+  void initState() {
+    super.initState();
+    _user = widget.user ?? Get.arguments?['user'] ?? {};
+    _isBlocked = _user['isBlocked'] ?? false;
+  }
+
+  // Fallback / stats (can be fetched via API later)
+  final _stats = {
+    'totalOrders': '0',
+    'totalSpent': '₹0',
+    'loyaltyPoints': '0',
+    'walletBalance': '₹0',
   };
 
-  final _recentOrders = [
-    {'id': 'GB2024089', 'date': '18 Mar 2024', 'amount': '₹540', 'status': 'Delivered'},
-    {'id': 'GB2024072', 'date': '10 Mar 2024', 'amount': '₹1,200', 'status': 'Delivered'},
-    {'id': 'GB2024051', 'date': '28 Feb 2024', 'amount': '₹320', 'status': 'Cancelled'},
-  ];
+  final List<dynamic> _recentOrders = [];
 
   Color _statusColor(String status) {
     switch (status) {
@@ -68,15 +70,20 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: _isBlocked ? AppColors.success : AppColors.error,
             ),
-            onPressed: () {
-              setState(() => _isBlocked = !_isBlocked);
-              Navigator.pop(ctx);
-              Get.snackbar(
-                _isBlocked ? 'User Blocked' : 'User Unblocked',
-                '${_user['name']} has been ${_isBlocked ? 'blocked' : 'unblocked'}.',
-                backgroundColor: _isBlocked ? AppColors.error : AppColors.success,
-                colorText: Colors.white,
-              );
+            onPressed: () async {
+              try {
+                await controller.toggleUserBlock(_user['_id']);
+                setState(() => _isBlocked = !_isBlocked);
+                Navigator.pop(ctx);
+                Get.snackbar(
+                  _isBlocked ? 'User Blocked' : 'User Unblocked',
+                  '${_user['name']} has been ${_isBlocked ? 'blocked' : 'unblocked'}.',
+                  backgroundColor: _isBlocked ? AppColors.error : AppColors.success,
+                  colorText: Colors.white,
+                );
+              } catch (e) {
+                Get.snackbar('Error', 'Failed to update user status');
+              }
             },
             child: Text(_isBlocked ? 'Unblock' : 'Block'),
           ),
@@ -108,8 +115,10 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.md),
+      body: _user.isEmpty 
+        ? const Center(child: Text('User details not found'))
+        : SingleChildScrollView(
+            padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -138,7 +147,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                   radius: 36,
                   backgroundColor: AppColors.primaryContainer,
                   child: Text(
-                    _user['name']!.substring(0, 2).toUpperCase(),
+                    (_user['name']?.toString() ?? 'U').substring(0, _user['name']?.toString().length == 1 ? 1 : 2).toUpperCase(),
                     style: AppTextStyles.headlineMedium.copyWith(color: AppColors.primary),
                   ),
                 ),
@@ -158,7 +167,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                               borderRadius: BorderRadius.circular(AppRadius.full),
                             ),
                             child: Text(
-                              _user['role']!,
+                              _user['role']?.toString() ?? 'User',
                               style: AppTextStyles.labelSmall.copyWith(color: AppColors.primary),
                             ),
                           ),
@@ -185,11 +194,11 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
             const SizedBox(height: AppSpacing.md),
             const Divider(),
             const SizedBox(height: AppSpacing.sm),
-            _infoRow(Icons.email_outlined, _user['email']!),
+            _infoRow(Icons.email_outlined, _user['email']?.toString() ?? 'No email'),
             const SizedBox(height: AppSpacing.sm),
-            _infoRow(Icons.phone_outlined, _user['phone']!),
+            _infoRow(Icons.phone_outlined, _user['phone']?.toString() ?? 'No phone'),
             const SizedBox(height: AppSpacing.sm),
-            _infoRow(Icons.calendar_today_outlined, 'Joined ${_user['joinDate']}'),
+            _infoRow(Icons.calendar_today_outlined, 'Joined ${_user['createdAt']?.toString().split('T')[0] ?? 'N/A'}'),
           ],
         ),
       ),
@@ -209,10 +218,10 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   Widget _buildStatsRow() {
     return Row(
       children: [
-        _statItem('Orders', _user['totalOrders']!, Icons.shopping_basket_outlined, Colors.blue),
-        _statItem('Spent', _user['totalSpent']!, Icons.currency_rupee, AppColors.primary),
-        _statItem('Points', _user['loyaltyPoints']!, Icons.stars_outlined, AppColors.secondary),
-        _statItem('Wallet', _user['walletBalance']!, Icons.account_balance_wallet_outlined, AppColors.success),
+        _statItem('Orders', _user['orderCount']?.toString() ?? '0', Icons.shopping_basket_outlined, Colors.blue),
+        _statItem('Spent', '₹${_user['totalSpent']?.toString() ?? '0'}', Icons.currency_rupee, AppColors.primary),
+        _statItem('Points', _user['loyaltyPoints']?.toString() ?? '0', Icons.stars_outlined, AppColors.secondary),
+        _statItem('Wallet', '₹${_user['walletBalance']?.toString() ?? '0'}', Icons.account_balance_wallet_outlined, AppColors.success),
       ],
     );
   }
@@ -243,43 +252,48 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text('Recent Orders', style: AppTextStyles.titleLarge),
-            const SizedBox(height: AppSpacing.sm),
-            ..._recentOrders.map((order) => Column(
-                  children: [
-                    const Divider(),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('#${order['id']}', style: AppTextStyles.labelLarge),
-                                Text(order['date']!, style: AppTextStyles.bodySmall),
-                              ],
-                            ),
-                          ),
-                          Text(order['amount']!, style: AppTextStyles.titleMedium),
-                          const SizedBox(width: AppSpacing.sm),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: _statusColor(order['status']!).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(AppRadius.full),
-                            ),
-                            child: Text(
-                              order['status']!,
-                              style: AppTextStyles.labelSmall.copyWith(
-                                color: _statusColor(order['status']!),
+            if (_recentOrders.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+                child: Text('No recent orders found', style: TextStyle(color: AppColors.textHint)),
+              )
+            else
+              ..._recentOrders.map((order) => Column(
+                    children: [
+                      const Divider(),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('#${order['id']}', style: AppTextStyles.labelLarge),
+                                  Text(order['date']!, style: AppTextStyles.bodySmall),
+                                ],
                               ),
                             ),
-                          ),
-                        ],
+                            Text(order['amount']!, style: AppTextStyles.titleMedium),
+                            const SizedBox(width: AppSpacing.sm),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: _statusColor(order['status']!).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(AppRadius.full),
+                              ),
+                              child: Text(
+                                order['status']!,
+                                style: AppTextStyles.labelSmall.copyWith(
+                                  color: _statusColor(order['status']!),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                )),
+                    ],
+                  )),
           ],
         ),
       ),
@@ -308,7 +322,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
               color: AppColors.info,
               onTap: () {
                 // TODO: Call API to trigger password reset email
-                Get.snackbar('Reset Sent', 'Password reset email sent to ${_user['email']}.',
+                Get.snackbar('Reset Sent', 'Password reset email sent to ${_user['email']?.toString() ?? 'user'}.',
                     backgroundColor: AppColors.info, colorText: Colors.white);
               },
             ),

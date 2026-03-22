@@ -242,7 +242,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     subtitle: Text(order['createdAt'] != null ? 'Just now' : '2 mins ago'),
                     trailing: _statusBadge(order['status'] as String? ?? 'Pending', 'info'),
                     onTap: () {
-                      Get.to(() => const AdminOrderDetailScreen());
+                      Get.to(() => AdminOrderDetailScreen(orderId: order['_id'] ?? order['id']));
                     },
                   );
                 },
